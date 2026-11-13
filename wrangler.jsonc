@@ -39,7 +39,7 @@
   // Web Push's VAPID key: the public half here, the private half a secret
   // (robbie vapid makes the pair and stores it: VAPID_PRIVATE_KEY).
   "vars": {
-    "VAPID_PUBLIC_KEY": "",
+    "VAPID_PUBLIC_KEY": "BODb0gh8rnaw9idA-TCYrJqcMMjKxLOkabT-QL0EvFk-jVMmP9aucQ916w8LZDdTPJC2cmFmtLe5IVBAZB8RhV4",
     "VAPID_SUBJECT": "https://cuento.page",
   },
 }
