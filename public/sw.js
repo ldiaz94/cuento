@@ -3,9 +3,10 @@
  * JavaScript, written by hand; robbie build (tools/precache.ts) copies it
  * to build/site/sw.js with the BUILD line filled in, so the file list and
  * the version are never kept by hand. Depends on the browser's service
- * worker, Cache and fetch APIs. Leaves out the book lookups (always the
- * network: offline, the page says so), background sync, and any limit on
- * the covers kept (a shelf's worth is small). */
+ * worker, Cache and fetch APIs. Leaves out the book lookups and the sync
+ * API, /api/ (always the network: offline, the page says so), the
+ * browser's Background Sync, and any limit on the covers kept (a
+ * shelf's worth is small). */
 
 /** Filled in by the build: the version (a hash of the site) and its files. */
 const BUILD = { version: 'dev', files: ['index.html'] };
@@ -39,11 +40,14 @@ self.addEventListener('activate', event => {
 });
 
 // Fetch: the app's files and the covers come from a cache first; anything
-// else (the lookups) is left alone, so it goes to the network as usual.
+// else (the lookups, and the sync API under /api/) is left alone, so it
+// goes to the network as usual.
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
-  const sameOrigin = new URL(request.url).origin === location.origin;
+  const url = new URL(request.url);
+  const sameOrigin = url.origin === location.origin;
+  if (sameOrigin && url.pathname.startsWith('/api/')) return;
   if (sameOrigin) {
     event.respondWith(cacheFirst(request, SHELL, request.mode === 'navigate'));
   } else if (request.destination === 'image') {

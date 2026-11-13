@@ -40,7 +40,10 @@ for (const scheme of ['light', 'dark'] as const) {
   // A fixed "today", so "read this year" counts the same books every run.
   await page.clock.setFixedTime(new Date('2026-11-13T12:00:00'));
   await page.goto(url);
-  await page.evaluate(books => localStorage.setItem('cuento.books', JSON.stringify(books)), BOOKS);
+  await page.evaluate(books => {
+    localStorage.setItem('cuento.books', JSON.stringify(books));
+    localStorage.setItem('cuento.goals', JSON.stringify({ 2026: 12 }));
+  }, BOOKS);
   await page.reload();
   await page.locator('.book').nth(1).locator('.title').click();
   await page.screenshot({ path: 'doc/img/shelf-' + scheme + '.png' });

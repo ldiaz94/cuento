@@ -2,3 +2,4 @@ src/spark/
 node_modules/
 build/
 public/vendor/
+worker/worker-configuration.d.ts

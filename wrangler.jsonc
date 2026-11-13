@@ -1,7 +1,28 @@
-// cuento is static: Cloudflare serves build/site/ (robbie build). npx wrangler deploy
+// cuento on Cloudflare: build/site/ (robbie build) served as static files,
+// and a Worker (worker/index.ts) for /api/* alone, the shelves that sync,
+// one Durable Object with its own SQLite per sync code. npx wrangler deploy
 // (robbie deploy, which checks first).
 {
   "name": "cuento",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./build/site" }
+  "assets": {
+    "directory": "./build/site",
+    "binding": "ASSETS",
+    // Only the API reaches the Worker first; every other path is a file.
+    "run_worker_first": ["/api/*"],
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "SHELF", "class_name": "Shelf" },
+      // One object for every account (worker/auth.ts).
+      { "name": "ACCOUNTS", "class_name": "Accounts" },
+    ],
+  },
+  // Each class keeps its data in SQLite: declared once, never renamed.
+  // The session key is a secret: npx wrangler secret put SESSION_KEY.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Shelf"] },
+    { "tag": "v2", "new_sqlite_classes": ["Accounts"] },
+  ],
 }

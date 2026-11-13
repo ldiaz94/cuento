@@ -7,7 +7,9 @@ or search by title or author, and cuento fills in the title, author and
 cover, and puts it on
 your shelf: want to read, reading, or read, with the dates, a rating and
 notes. It counts what you finished this year. It runs in the browser,
-keeps your shelf on your device, works offline, and needs no account.
+keeps your shelf on your device, works offline, and needs no account;
+sync it between your devices with a code, or a passkey. At the end of
+the year it tells you your year in books.
 
 The name is Spanish: _un cuento_ is a story, and _cuento_ is also "I
 count". The mascot is **Tilde**, a bookworm named after the curl over
@@ -54,8 +56,12 @@ for another.
 | Start or finish a book   | Change its status: starting dates it, finishing dates it                                                     |
 | Rate a read book         | Tap a star; tap the same star again to clear it                                                              |
 | See its dates and notes  | Tap its title                                                                                                |
-| Find a book              | Pick a status, or search titles and authors                                                                  |
+| Find a book              | Pick a status or a year (History), or search titles and authors                                              |
+| Set a goal               | In **Settings**: books to read this year; the count shows the way                                            |
 | Keep a copy              | In **Settings** (the gear): **Export** saves the shelf as JSON; **Import** brings one back                   |
+| See past years           | **History** under the shelves: a year's books, and **Your year in books**                                    |
+| Sync your devices        | **Settings → Sync**: turn it on, then open its link or QR on the other device                                |
+| Sign in                  | **Settings → Account**: create a passkey; sign in with it anywhere                                           |
 | Update cuento            | When a new version is ready a bar says so: tap **Update**. **Settings** shows the version and checks for one |
 
 Your shelf lives in this browser only. cuento opens with no network once
@@ -89,6 +95,23 @@ Five ideas, a module each, read in this order:
    books are a signal; a computed filters and searches them; spark's keyed
    `each()` keeps one row per book, updated in place.
 
+Beyond the page, three more, each a module or two:
+
+- **A year, told as a story** ([src/review.ts](src/review.ts)): pure
+  statistics (`yearStats`), then cards drawn in HTML and CSS, and a
+  share picture drawn on a canvas.
+- **Sync: a code is a shelf** ([src/sync.ts](src/sync.ts),
+  [worker/store.ts](worker/store.ts)). A small Worker
+  ([worker/index.ts](worker/index.ts)) keeps each shelf in a Durable
+  Object with SQLite, found by a hash of its code. Devices send what
+  changed since the last sync (a diff against a snapshot, so the page
+  never says what it changed); the latest change to a book wins; a
+  WebSocket tells the others to sync.
+- **Accounts are passkeys** ([worker/auth.ts](worker/auth.ts),
+  [src/account.ts](src/account.ts)): an account owns one shelf, so
+  signing in on a new device joins it. Sessions are signed cookies
+  (`SESSION_KEY`, a Worker secret).
+
 To work offline, a small service worker ([public/sw.js](public/sw.js))
 keeps every file of the site, and the covers you have seen, on the
 device. `robbie build` fills in its file list and a version (a hash of
@@ -121,8 +144,10 @@ off after a read, a stop or a missing camera.
 
 - **The torch, zoom and other barcodes** when scanning.
 - **Limiting the covers kept offline**: they are kept as seen.
-- **Sync between devices**: export and import carry a shelf.
-- **Editions, series and reading goals**: a book is one ISBN.
+- **A recovery email**: an account is its passkeys; keep two, and export.
+- **Merging edits to one book**: the latest change to a book wins whole.
+- **Editions and series**: a book is one ISBN.
+- **Goals and History across devices**: goals are kept on each device.
 
 ## Licence
 

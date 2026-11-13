@@ -2,3 +2,5 @@
 node_modules/
 build/
 .wrangler/
+worker/worker-configuration.d.ts
+.dev.vars

@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- The year in review on its own, for test/review.test.ts: the books
+     and year come from window.BOOKS and window.YEAR; closing it leaves
+     <body data-closed>. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="review.css" />
+  </head>
+  <body>
+    <script type="module">
+      import { mount } from './spark/index.js';
+      import { review } from './review.js';
+      const close = () => {
+        dispose();
+        document.body.dataset.closed = '';
+      };
+      const dispose = mount(document.body, () => review(window.YEAR, window.BOOKS, close));
+    </script>
+  </body>
+</html>

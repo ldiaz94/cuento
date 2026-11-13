@@ -1,0 +1,4 @@
+# Secrets for npx wrangler dev: copy to .dev.vars (never committed) and
+# put in a long random key, e.g. from: openssl rand -base64 32
+# Deployed, the key is a Cloudflare secret: npx wrangler secret put SESSION_KEY
+SESSION_KEY=change-me

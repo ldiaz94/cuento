@@ -9,7 +9,7 @@
  *
  * The shelf is kept in localStorage as JSON, newest first, and exported
  * and imported as {cuento: 1, exported, books}. Depends on nothing.
- * Leaves out sync between devices: export and import carry a shelf. */
+ * Syncing between devices is sync.ts's; export and import carry a shelf too. */
 
 /** Where a reader is with a book. */
 export type Status = 'want' | 'reading' | 'read';
@@ -90,7 +90,7 @@ export function withStatus(book: Book, status: Status, day = today()): Book {
 }
 
 /** Whether v looks like a book (an import is checked before it is kept). */
-function isBook(v: unknown): v is Book {
+export function isBook(v: unknown): v is Book {
   const b = v as Partial<Book> | null;
   return (
     typeof b === 'object' &&

@@ -8,7 +8,17 @@
  *
  * Depends on spark, isbn.ts, lookup.ts, scan.ts and shelf.ts. Working
  * offline is the service worker's (public/sw.js), not the page's. */
-import { signal, computed, effect, batch, onCleanup, html, each, mount } from './spark/index.js';
+import {
+  signal,
+  computed,
+  effect,
+  batch,
+  untrack,
+  onCleanup,
+  html,
+  each,
+  mount,
+} from './spark/index.js';
 import type { Getter } from './spark/index.js';
 import { toIsbn13, show } from './isbn.ts';
 import { lookup, search } from './lookup.ts';
@@ -16,6 +26,11 @@ import type { Hit } from './lookup.ts';
 import { scan, canScan, ScanError } from './scan.ts';
 import type { Reason } from './scan.ts';
 import * as updates from './updates.ts';
+import { startSync, code } from './sync.ts';
+import { syncSection } from './syncView.ts';
+import { accountSection } from './accountView.ts';
+import { review } from './review.ts';
+import { tilde, cloth } from './tilde.ts';
 import type { Found, Version } from './updates.ts';
 import {
   STATUSES,
@@ -50,8 +65,11 @@ const valueOf = (e: Event) => (e.target as HTMLInputElement).value;
 const LABELS: Record<Status, string> = { want: 'Want to read', reading: 'Reading', read: 'Read' };
 /** What each status is called on a book's switch, where room is short. */
 const SHORT: Record<Status, string> = { want: 'Want', reading: 'Reading', read: 'Read' };
-/** The filters above the shelf: every book, or one status. */
-const FILTERS: ('all' | Status)[] = ['all', ...STATUSES];
+/** What the shelf shows: every book, one status, or the books finished
+ * in a year (History). */
+type Filter = 'all' | Status | number;
+/** The filters above the shelf by status. */
+const FILTERS: Filter[] = ['all', ...STATUSES];
 
 // The shelf, saved whenever it changes.
 const [books, setBooks] = signal(load());
@@ -59,9 +77,11 @@ const [saveFailed, setSaveFailed] = signal(false);
 effect(() => {
   setSaveFailed(!save(books()));
 });
+// And, once sync is on, shared with the reader's other devices.
+startSync(books, setBooks);
 
 // What the shelf shows: a status (or all) and the words searched for.
-const [filter, setFilter] = signal<'all' | Status>('all');
+const [filter, setFilter] = signal<Filter>('all');
 const [query, setQuery] = signal('');
 // The book whose details are open, by ISBN ('' for none).
 const [open, setOpen] = signal('');
@@ -70,20 +90,64 @@ const [open, setOpen] = signal('');
 const [typed, setTyped] = signal('');
 const [adding, setAdding] = signal<Adding | null>(null);
 
-/** The books the filter and the search let through. */
+/** Whether book passes filter f. */
+function passes(book: Book, f: Filter) {
+  if (typeof f === 'number') return finishedIn(book, f);
+  return f === 'all' || book.status === f;
+}
+/** Whether book was finished in year. */
+const finishedIn = (book: Book, year: number) =>
+  book.status === 'read' && book.finished.startsWith(String(year));
+
+/** The books the filter and the search let through; a year's books in
+ * the order they were finished, latest first. */
 const shown = computed(() => {
   const words = query().toLowerCase().split(/\s+/).filter(Boolean);
-  return books().filter(
+  const found = books().filter(
     b =>
-      (filter() === 'all' || b.status === filter()) &&
+      passes(b, filter()) &&
       words.every(w => (b.title + ' ' + b.authors.join(' ')).toLowerCase().includes(w)),
   );
+  return typeof filter() === 'number'
+    ? found.sort((a, b) => b.finished.localeCompare(a.finished))
+    : found;
 });
+/** This year, as a number. */
+const thisYear = () => Number(today().slice(0, 4));
 /** Books finished this calendar year: what cuento counts. */
-const readThisYear = computed(
-  () =>
-    books().filter(b => b.status === 'read' && b.finished.startsWith(today().slice(0, 4))).length,
+const readThisYear = computed(() => books().filter(b => finishedIn(b, thisYear())).length);
+/** The years books were finished in, latest first: the History. */
+const years = computed(() =>
+  [
+    ...new Set(
+      books().flatMap(b =>
+        b.status === 'read' && b.finished ? [Number(b.finished.slice(0, 4))] : [],
+      ),
+    ),
+  ].sort((a, b) => b - a),
 );
+
+/** Where reading goals are kept. */
+const GOALS = 'cuento.goals';
+/** Reading goals by year (books to finish), kept on this device. */
+const [goals, setGoals] = signal<Record<string, number>>(loadGoals());
+effect(() => {
+  try {
+    localStorage.setItem(GOALS, JSON.stringify(goals()));
+  } catch {
+    // goals are a nicety: a browser that keeps nothing just forgets them
+  }
+});
+/** The goals kept on this device ({} when none, or unreadable). */
+function loadGoals(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(GOALS) || '{}');
+  } catch {
+    return {};
+  }
+}
+/** This year's goal (0: none). */
+const goal = () => goals()[thisYear()] ?? 0;
 
 /** Books being read now. */
 const readingNow = computed(() => books().filter(b => b.status === 'reading').length);
@@ -292,21 +356,26 @@ function addBar() {
 
 /** The filters by status and the search field. */
 function toolbar() {
-  const count = (f: 'all' | Status) => () =>
-    (f === 'all' ? books() : books().filter(b => b.status === f)).length;
+  const count = (f: Filter) => () => books().filter(b => passes(b, f)).length;
+  const chip = (f: Filter, label: string) =>
+    html`<button
+      class=${() => ({ chip: true, on: filter() === f })}
+      aria-pressed=${() => String(filter() === f)}
+      @click=${() => glide(() => setFilter(f))}
+    >
+      ${label} <span class="n">${count(f)}</span>
+    </button>`;
   return html`<nav class="tools">
     <div class="filters" role="group" aria-label="Show">
-      ${FILTERS.map(
-        f =>
-          html`<button
-            class=${() => ({ chip: true, on: filter() === f })}
-            aria-pressed=${() => String(filter() === f)}
-            @click=${() => glide(() => setFilter(f))}
-          >
-            ${f === 'all' ? 'All' : LABELS[f]} <span class="n">${count(f)}</span>
-          </button>`,
-      )}
+      ${FILTERS.map(f => chip(f, f === 'all' ? 'All' : LABELS[f as Status]))}
     </div>
+    ${() =>
+      years().length
+        ? html`<div class="filters years" role="group" aria-label="History">
+            <span class="label">History</span>
+            ${years().map(y => chip(y, String(y)))}
+          </div>`
+        : null}
     <input
       type="search"
       placeholder="Search titles and authors"
@@ -326,27 +395,6 @@ function cover(book: BookGetter) {
           <span>${book().title.slice(0, 48)}</span>
         </div>`;
 }
-/** Bookcloth colours for spines: oxblood, navy, forest, ochre, teal,
- * plum, slate and rust. */
-const CLOTHS = [
-  '#7d2f2b',
-  '#26476e',
-  '#2f5e4a',
-  '#a27b2c',
-  '#1f6164',
-  '#5d3b66',
-  '#4b5762',
-  '#9b4b25',
-];
-
-/** A cloth for a spine, the same every time for the same book: the ISBN
- * hashed (FNV-1a), so books with close ISBNs still differ. */
-function cloth(isbn: string) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < isbn.length; i++) h = Math.imul(h ^ isbn.charCodeAt(i), 0x01000193);
-  return CLOTHS[(h >>> 0) % CLOTHS.length] ?? CLOTHS[0];
-}
-
 /** Stars to rate a read book; the one given again clears the rating. */
 function stars(book: BookGetter) {
   const rate = (n: number) => update(book().isbn, b => ({ ...b, rating: b.rating === n ? 0 : n }));
@@ -451,101 +499,37 @@ function row(book: BookGetter) {
   </li>`;
 }
 
-/** Tilde, drawn in the page (icon.svg's drawing, in parts) so she can
- * move: her head sways on her neck and she blinks, while her book stays
- * still. */
-function tilde() {
-  return html`<svg class="tilde" viewBox="0 0 256 256" width="128" height="128" aria-hidden="true">
-    <path
-      d="M176 190 C176 140 96 156 100 112"
-      fill="none"
-      stroke="#2b2620"
-      stroke-width="44"
-      stroke-linecap="round"
-    />
-    <path
-      d="M176 190 C176 140 96 156 100 112"
-      fill="none"
-      stroke="#7fb069"
-      stroke-width="34"
-      stroke-linecap="round"
-    />
-    <path
-      d="M150 150 C150 138 128 140 126 134"
-      fill="none"
-      stroke="#5a8a4a"
-      stroke-width="6"
-      stroke-linecap="round"
-    />
-    <g class="head">
-      <g transform="rotate(28 150 70)">
-        <rect
-          x="144"
-          y="18"
-          width="12"
-          height="62"
-          rx="2"
-          fill="#d9a21b"
-          stroke="#2b2620"
-          stroke-width="4"
-        />
-        <path
-          d="M144 18 L150 4 L156 18 Z"
-          fill="#f6f1e7"
-          stroke="#2b2620"
-          stroke-width="4"
-          stroke-linejoin="round"
-        />
-        <rect
-          x="144"
-          y="70"
-          width="12"
-          height="10"
-          fill="#b5532c"
-          stroke="#2b2620"
-          stroke-width="4"
-        />
-      </g>
-      <circle cx="104" cy="88" r="42" fill="#7fb069" stroke="#2b2620" stroke-width="6" />
-      <circle cx="141" cy="88" r="9" fill="#5a8a4a" stroke="#2b2620" stroke-width="4" />
-      <circle cx="88" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5" />
-      <circle cx="120" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5" />
-      <path d="M102 85 H106" stroke="#2b2620" stroke-width="5" />
-      <g class="eyes">
-        <circle cx="90" cy="88" r="4.5" fill="#2b2620" />
-        <circle cx="122" cy="88" r="4.5" fill="#2b2620" />
-      </g>
-      <path
-        d="M90 108 Q104 120 118 108"
-        fill="none"
-        stroke="#2b2620"
-        stroke-width="5"
-        stroke-linecap="round"
-      />
-    </g>
-    <rect
-      x="44"
-      y="176"
-      width="168"
-      height="56"
-      rx="8"
-      fill="#b5532c"
-      stroke="#2b2620"
-      stroke-width="6"
-    />
-    <path d="M72 176 V232 M184 176 V232" stroke="#d9a21b" stroke-width="6" />
-    <rect
-      x="92"
-      y="192"
-      width="80"
-      height="24"
-      rx="3"
-      fill="#fffdf8"
-      stroke="#2b2620"
-      stroke-width="4"
-    />
-    <path d="M102 204 H162" stroke="#7a7064" stroke-width="4" stroke-linecap="round" />
-  </svg>`;
+/** At the top of a year's shelf (History): the year, what was read, and
+ * its review. */
+function yearCard() {
+  const year = filter();
+  if (typeof year !== 'number') return null;
+  const read = books().filter(b => finishedIn(b, year));
+  const pages = read.reduce((sum, b) => sum + (b.pages || 0), 0);
+  const target = goals()[year];
+  return html`<div class="year-card">
+    <p class="year">${year}</p>
+    <p class="what">
+      ${read.length}
+      ${read.length === 1 ? 'book' : 'books'}${pages
+        ? ' · ' + pages.toLocaleString() + ' pages'
+        : ''}${target ? ' · goal ' + target : ''}
+    </p>
+    <button class="review-button" @click=${() => setReviewing(year)}>
+      Your ${year} in books <span aria-hidden="true">→</span>
+    </button>
+  </div>`;
+}
+
+/** The year whose review is showing (0: none). */
+const [reviewing, setReviewing] = signal(0);
+
+/** The year to offer a review of from the top: this one in December, the
+ * last one in January (0: none, or nothing read). */
+function reviewDue() {
+  const month = Number(today().slice(5, 7));
+  const year = month === 12 ? thisYear() : month === 1 ? thisYear() - 1 : 0;
+  return year && books().some(b => finishedIn(b, year)) ? year : 0;
 }
 
 /** What the shelf says when it shows nothing. */
@@ -641,10 +625,30 @@ function settings() {
       <section>
         <h3>Your shelf</h3>
         <p class="hint">
-          ${() => books().length} ${() => (books().length === 1 ? 'book' : 'books')}, kept in this
-          browser only. Export now and then to keep a copy; import one to bring it back.
+          ${() => books().length}
+          ${() => (books().length === 1 ? 'book' : 'books')}${() =>
+            code() ? ', kept in this browser and synced.' : ', kept in this browser only.'}
+          Export now and then to keep a copy; import one to bring it back.
         </p>
         ${backup()}
+      </section>
+      ${accountSection()} ${syncSection()}
+      <section>
+        <h3>Goal</h3>
+        <label class="goal-field"
+          >Books to read in ${thisYear()}
+          <input
+            type="number"
+            inputmode="numeric"
+            min="0"
+            max="999"
+            placeholder="No goal"
+            .value=${() => (goal() ? String(goal()) : '')}
+            @change=${(e: Event) => {
+              const n = Math.max(0, Math.min(999, Math.round(Number(valueOf(e)) || 0)));
+              setGoals(g => ({ ...g, [thisYear()]: n }));
+            }}
+        /></label>
       </section>
       <section>
         <h3>App</h3>
@@ -700,8 +704,33 @@ function hero() {
     </div>
     <p class="count">
       ${() => html`<span class="big">${readThisYear()}</span>` /* new each time: it ticks in */}
-      <span class="what">${() => (readThisYear() === 1 ? 'book' : 'books')} read in ${year}</span>
+      <span class="what"
+        >${() => (goal() ? 'of ' + goal() + ' ' : '')}${() =>
+          (goal() || readThisYear()) === 1 ? 'book' : 'books'}
+        read in ${year}</span
+      >
     </p>
+    ${() =>
+      goal()
+        ? html`<div
+            class="goal"
+            role="progressbar"
+            aria-label="Goal"
+            aria-valuemin="0"
+            aria-valuemax=${goal()}
+            aria-valuenow=${readThisYear()}
+          >
+            <span style=${{ '--done': Math.min(1, readThisYear() / goal()) }}></span>
+          </div>`
+        : null}
+    ${() => {
+      const due = reviewDue();
+      return due
+        ? html`<button class="review-button" @click=${() => setReviewing(due)}>
+            Your ${due} in books <span aria-hidden="true">→</span>
+          </button>`
+        : null;
+    }}
     <p class="sub">${() => books().length} on the shelf · ${readingNow} reading now</p>
   </header>`;
 }
@@ -759,8 +788,14 @@ mount(
   html`<div class="layout">
     <aside class="side">${hero()} ${addBar()} ${toolbar()} ${saveWarning}</aside>
     ${scanner} ${settings} ${updateBar}
+    ${
+      () =>
+        reviewing()
+          ? untrack(() => review(reviewing(), books(), () => setReviewing(0)))
+          : null /* untracked: a change to the shelf doesn't restart the story */
+    }
     <section class="main" aria-label="Your shelf">
-      ${empty}
+      ${yearCard} ${empty}
       <ul class="shelf">
         ${each(shown, b => b.isbn, row)}
       </ul>
@@ -771,3 +806,6 @@ mount(
 // that come and go glide instead.
 setTimeout(() => document.documentElement.classList.add('settled'), 1500);
 updates.start();
+// Ask the browser to keep the shelf even when space runs short, and (on
+// an iPhone) past seven days without a visit.
+navigator.storage?.persist?.();

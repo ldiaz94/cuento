@@ -22,14 +22,17 @@ task build:
     cp src/spark/*.js src/spark/LICENSE build/site/spark/
     node tools/precache.ts
 
-# The tests' types, the pure modules, then the page in a browser.
+# The tests' types and the Worker's (its types written from wrangler.jsonc),
+# the pure modules and sync, then the page in a browser.
 task check: build
     {bin}/tsc -p test
-    node --test test/unit.test.ts test/browser.test.ts test/scan.test.ts
+    npx wrangler types worker/worker-configuration.d.ts >/dev/null
+    {bin}/tsc -p worker
+    node --test test/unit.test.ts test/sync.test.ts test/accounts.test.ts test/review.test.ts test/browser.test.ts test/review-browser.test.ts test/scan.test.ts
 
 # The sources as Prettier lays them out (spark is spark's own).
 task fmt:
-    {bin}/prettier --check src/*.ts test tools public
+    {bin}/prettier --check src/*.ts test tools public worker
 
 # The site on http://localhost:{port}/ (the camera needs HTTPS: deploy).
 task serve: build
@@ -74,3 +77,9 @@ task zxing:
     cp node_modules/zxing-wasm/dist/es/reader/index.js public/vendor/zxing/reader/
     cp node_modules/zxing-wasm/dist/reader/zxing_reader.wasm public/vendor/zxing/reader/
     cp node_modules/zxing-wasm/LICENSE public/vendor/zxing/
+
+# qrcode-generator (MIT, Kazuhiko Arase; the licence is in its header),
+# self-hosted for the QR code of the sync link in Settings.
+task qrcode:
+    mkdir -p public/vendor/qrcode
+    cp node_modules/qrcode-generator/dist/qrcode.mjs public/vendor/qrcode/

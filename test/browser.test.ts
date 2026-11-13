@@ -147,6 +147,16 @@ test('Scan opens the camera sheet, which says when there is no camera, and Escap
   await page.waitForSelector('.scanner', { state: 'detached' });
 });
 
+test('History shows the books finished in a year, under the year', async () => {
+  const year = String(new Date().getFullYear());
+  await page.locator('.years .chip', { hasText: year }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.book').length === 1);
+  assert.equal(await text('.year-card .year'), year);
+  assert.deepEqual(await titles(), ['Typesetting Mathematics']);
+  await page.locator('.chip').nth(0).click();
+  await page.waitForFunction(() => document.querySelectorAll('.book').length === 3);
+});
+
 test('the shelf is still there after a reload, with no page errors', async () => {
   await page.reload();
   await page.waitForSelector('.book');
@@ -190,6 +200,10 @@ test('words are searched for, and a book found is added with a tap', async () =>
 test('Settings shows the version, and Escape closes it', async () => {
   await page.click('.gear');
   assert.match(await text('.facts dd'), /^[0-9a-f]{12}$/);
+  await page.fill('.goal-field input', '12');
+  await page.press('.goal-field input', 'Enter'); // a number field's change
+  await page.locator('.goal-field input').blur();
+  assert.match((await text('.count')).replace(/\s+/g, ' '), /1 of 12 books read/);
   await page.keyboard.press('Escape');
   await page.waitForSelector('.settings', { state: 'detached' });
 });

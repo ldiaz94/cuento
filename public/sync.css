@@ -1,0 +1,122 @@
+/* Sync's part of the Settings sheet (src/syncView.ts), on style.css's
+ * colours and type. */
+
+/* The settings section's own gap spaces these; the notes need no margin. */
+.sync .note {
+  margin: 0;
+}
+/* Joining: the code's field beside its button. */
+.sync-join {
+  display: flex;
+  gap: 8px;
+}
+.sync-join input {
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sync-join input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
+}
+/* The code, large and spaced, to read across a room or copy by eye. */
+.sync-code {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font:
+    600 17px/1.4 ui-monospace,
+    'SF Mono',
+    Menlo,
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+/* The QR code: black on white in either theme, so any camera reads it. */
+.sync-qr {
+  justify-self: start;
+  width: min(220px, 100%);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.sync-qr:empty {
+  display: none;
+}
+.sync-qr svg {
+  display: block;
+  width: 100%;
+  fill: #000;
+}
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Stopping is quiet: it changes nothing on the shelf, but it is a step back. */
+.sync .sync-stop {
+  justify-self: start;
+  border-color: transparent;
+  background: none;
+  color: var(--accent);
+  padding: 0 4px;
+}
+
+/* The account (src/accountView.ts): its notes need no margin either. */
+.account .note {
+  margin: 0;
+}
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* The passkeys: a name, its dates below, and Remove at the end. */
+.passkeys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.passkeys li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+.passkey-name {
+  font-weight: 600;
+}
+.passkey-dates {
+  grid-column: 1;
+  font-size: 13px;
+  opacity: 0.75;
+}
+.passkeys .passkey-remove {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+/* Signing out is quiet, like stopping sync: the books stay. */
+.account .account-out {
+  justify-self: start;
+  border-color: transparent;
+  background: none;
+  color: var(--accent);
+  padding: 0 4px;
+}
+/* Signed in, the code and its link fold away under "Share this shelf". */
+.sync-share summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.sync-share > :not(summary) {
+  margin-top: 12px;
+}
