@@ -6,7 +6,7 @@ cuento keeps the books you read. Type a book's ISBN (soon: scan its
 barcode), and cuento finds its title, author and cover, and puts it on
 your shelf: want to read, reading, or read, with the dates, a rating and
 notes. It counts what you finished this year. It runs in the browser,
-keeps your shelf on your device, and needs no account.
+keeps your shelf on your device, works offline, and needs no account.
 
 The name is Spanish: _un cuento_ is a story, and _cuento_ is also "I
 count". The mascot is **Cuca**, a bookworm with round glasses and a
@@ -53,9 +53,12 @@ for another.
 | Find a book              | Pick a status, or search titles and authors                    |
 | Keep a copy              | **Export** saves the shelf as JSON; **Import** brings one back |
 
-Your shelf lives in this browser only. On an iPhone, Safari may clear a
-site's data after a few weeks unused: add cuento to your Home Screen,
-and export now and then.
+Your shelf lives in this browser only. cuento opens with no network once
+it has been loaded; only looking up a new book needs one. To install it,
+use **Add to Home Screen** in Safari on an iPhone (Share menu), or
+**Install** in Chrome on Android or the desktop. On an iPhone, Safari may
+clear a site's data after a few weeks unused: an installed app is spared,
+but export now and then.
 
 ## How it works
 
@@ -74,6 +77,14 @@ Four ideas, a module each, read in this order:
    books are a signal; a computed filters and searches them; spark's keyed
    `each()` keeps one row per book, updated in place.
 
+To work offline, a small service worker ([public/sw.js](public/sw.js))
+keeps every file of the site, and the covers you have seen, on the
+device. `robbie build` fills in its file list and a version (a hash of
+the site) with [tools/precache.ts](tools/precache.ts), so a deploy that
+changes anything is picked up on the next load. Lookups always go to the
+network. The PNG icons in `public/` are kept, redrawn by `robbie icons`
+(needs `rsvg-convert`).
+
 cuento is TypeScript, strict. `robbie build` compiles `src/` into
 `build/site/`, beside `public/` (the page, its style and icon) and spark,
 which `src/spark/` vendors at a tag (`robbie spark`) as JavaScript with
@@ -87,11 +98,12 @@ them as they are.
 status dates, imports, a full or broken storage); and the page in
 headless Chromium with the services faked (adding, every note the ISBN
 field gives, adding by hand, statuses and ratings, filters and search, a
-reload, and that a book's title never becomes HTML).
+reload, the page opening with the network cut, and that a book's title never becomes HTML).
 
 ## Left out
 
-- **Scanning a barcode** and **working offline**: the next two steps.
+- **Scanning a barcode**: the next step.
+- **Limiting the covers kept offline**: they are kept as seen.
 - **Sync between devices**: export and import carry a shelf.
 - **Editions, series and reading goals**: a book is one ISBN.
 

@@ -12,13 +12,15 @@ spark   = /home/luis/r/spark
 sparkv  = v0.1.1
 port    = 8080
 
-# The site, in build/site/.
+# The site, in build/site/; tools/precache.ts last, which writes its
+# service worker with the list of files to keep offline.
 task build:
     rm -rf build/site
     {bin}/tsc -p .
     cp -R public/. build/site/
     mkdir -p build/site/spark
     cp src/spark/*.js src/spark/LICENSE build/site/spark/
+    node tools/precache.ts
 
 # The tests' types, the pure modules, then the page in a browser.
 task check: build
@@ -27,7 +29,7 @@ task check: build
 
 # The sources as Prettier lays them out (spark is spark's own).
 task fmt:
-    {bin}/prettier --check src/*.ts test public
+    {bin}/prettier --check src/*.ts test tools public
 
 # The site on http://localhost:{port}/ (the camera needs HTTPS: deploy).
 task serve: build
@@ -50,6 +52,10 @@ task loc:
 # To Cloudflare, once checked.
 task deploy: check fmt
     npx wrangler deploy
+
+# The PNG icons in public/, drawn from icon.svg (rsvg-convert).
+task icons:
+    /home/luis/r/concha/build/concha tools/icons.cn
 
 # The fonts, self-hosted from Fontsource (OFL): Fraunces with all its
 # axes for titles, Instrument Sans for the rest; Latin and Latin Extended.

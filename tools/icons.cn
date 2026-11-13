@@ -1,0 +1,20 @@
+// The PNG icons in public/, drawn from public/icon.svg by rsvg-convert
+// (robbie icons, from cuento's top directory). Run it only when icon.svg
+// changes: the PNGs are kept. iOS fills transparency black, so the Home
+// Screen icon has a paper background; the maskable one is also padded,
+// so no launcher crops Cuca.
+errexit := true
+pipefail := true
+paper := '#f7f2e8'
+cd public
+rsvg-convert -w 192 -h 192 icon.svg -o icon-192.png
+rsvg-convert -w 512 -h 512 icon.svg -o icon-512.png
+rsvg-convert -b $paper -w 180 -h 180 icon.svg -o apple-touch-icon.png
+// The maskable icon: the drawing at 70%, centred on paper.
+begin
+  echo "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>"
+  echo "<rect width='256' height='256' fill='$paper'/>"
+  echo "<svg x='38' y='38' width='180' height='180' viewBox='0 0 256 256'>"
+  sed '1d;$d' icon.svg  // the drawing, without its own <svg> tags
+  echo '</svg></svg>'
+end | rsvg-convert -w 512 -h 512 -o icon-maskable-512.png

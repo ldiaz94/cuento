@@ -136,6 +136,22 @@ test('the shelf is still there after a reload, with no page errors', async () =>
   const statuses = await page.$$eval('.seg [aria-checked=true]', els =>
     els.map(e => (e as HTMLElement).dataset.status ?? ''),
   );
+
+  test('the app opens offline once its service worker has it', async () => {
+    await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+    await page.reload(); // now the worker controls the page
+    await page.waitForSelector('.book');
+    const context = page.context();
+    await context.setOffline(true);
+    try {
+      await page.reload();
+      await page.waitForSelector('.book');
+      assert.equal((await titles()).length, 3);
+      assert.deepEqual(errors, []);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
   assert.deepEqual(statuses.sort(), ['read', 'want', 'want']);
   assert.deepEqual(errors, []);
 });
