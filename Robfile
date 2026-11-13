@@ -25,7 +25,7 @@ task build:
 # The tests' types, the pure modules, then the page in a browser.
 task check: build
     {bin}/tsc -p test
-    node --test test/unit.test.ts test/browser.test.ts
+    node --test test/unit.test.ts test/browser.test.ts test/scan.test.ts
 
 # The sources as Prettier lays them out (spark is spark's own).
 task fmt:
@@ -65,3 +65,12 @@ task fonts:
     cp node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2 node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-ext-wght-normal.woff2 public/fonts/
     cp node_modules/@fontsource-variable/fraunces/LICENSE public/fonts/OFL-Fraunces.txt
     cp node_modules/@fontsource-variable/instrument-sans/LICENSE public/fonts/OFL-InstrumentSans.txt
+
+# zxing-wasm's reader build (barcodes on browsers without BarcodeDetector),
+# self-hosted: its JavaScript, WebAssembly and licence.
+task zxing:
+    mkdir -p public/vendor/zxing/reader
+    cp node_modules/zxing-wasm/dist/es/share.js public/vendor/zxing/
+    cp node_modules/zxing-wasm/dist/es/reader/index.js public/vendor/zxing/reader/
+    cp node_modules/zxing-wasm/dist/reader/zxing_reader.wasm public/vendor/zxing/reader/
+    cp node_modules/zxing-wasm/LICENSE public/vendor/zxing/

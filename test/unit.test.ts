@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toIsbn13, show } from '../src/isbn.ts';
+import { bookCode } from '../src/scan.ts';
 import { lookup } from '../src/lookup.ts';
 import { newBook, withStatus, imported, exported, merge, load, save } from '../src/shelf.ts';
 
@@ -96,4 +97,11 @@ test('storage: a damaged shelf loads as empty, a full one says it failed', () =>
     },
   };
   assert.equal(save([], full as unknown as Storage), false);
+});
+
+test('scanned codes: only an ISBN-13 with the right check digit is a book', () => {
+  assert.equal(bookCode('9780306406157'), '9780306406157');
+  assert.equal(bookCode('9780306406158'), null); // wrong check digit
+  assert.equal(bookCode('5012345678900'), null); // a product, not a book
+  assert.equal(bookCode('0306406152'), null); // ISBN-10 is not an EAN-13
 });

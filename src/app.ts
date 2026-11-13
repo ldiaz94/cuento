@@ -6,12 +6,14 @@
  *      │                                                      │
  *      └──► effect: save to localStorage   ◄── update(isbn) ──┘
  *
- * Depends on spark, isbn.ts, lookup.ts and shelf.ts. Leaves out scanning
- * (the camera) and working offline, which come next. */
-import { signal, computed, effect, batch, html, each, mount } from './spark/index.js';
+ * Depends on spark, isbn.ts, lookup.ts, scan.ts and shelf.ts. Working
+ * offline is the service worker's (public/sw.js), not the page's. */
+import { signal, computed, effect, batch, onCleanup, html, each, mount } from './spark/index.js';
 import type { Getter } from './spark/index.js';
 import { toIsbn13, show } from './isbn.ts';
 import { lookup } from './lookup.ts';
+import { scan, canScan, ScanError } from './scan.ts';
+import type { Reason } from './scan.ts';
 import {
   STATUSES,
   MAX_RATING,
@@ -218,6 +220,19 @@ function addBar() {
         @input=${(e: Event) => setTyped(valueOf(e))}
       />
       <button>Add book</button>
+      ${canScan()
+        ? html`<button
+            type="button"
+            class="scan"
+            aria-label="Scan a barcode"
+            @click=${() => setScanning(true)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M7 9v6M10 9v6M13 9v6M16 9v6" />
+            </svg>
+            <span class="label">Scan</span>
+          </button>`
+        : null}
     </form>
     ${addingNote}
   </section>`;
@@ -392,7 +407,7 @@ function empty() {
     : html`<div class="empty">
         <img src="icon.svg" alt="" width="120" height="120" />
         <p><strong>Your shelf is empty.</strong></p>
-        <p>Add a book by its ISBN: the number on the back cover, above the barcode.</p>
+        <p>Scan a book's barcode, or type its ISBN: the number above the barcode.</p>
       </div>`;
 }
 
@@ -449,12 +464,59 @@ function hero() {
   </header>`;
 }
 
+// Scanning: whether the camera sheet is open, and what went wrong in it.
+const [scanning, setScanning] = signal(false);
+const [scanTrouble, setScanTrouble] = signal('');
+
+/** What to tell the reader when the camera can't be had, by reason. */
+const TROUBLE: Record<Reason, string> = {
+  denied: 'cuento may not use the camera. Allow it in your browser’s settings, or type the ISBN.',
+  none: 'No camera here. Type the ISBN instead.',
+  insecure: 'The camera only works on the https site.',
+  other: 'The camera wouldn’t start. Type the ISBN instead.',
+};
+
+/** The camera sheet: the camera, a frame to aim with, and Cancel. It
+ * scans while open, and adds the book whose barcode it reads. */
+function scanner() {
+  if (!scanning()) return null;
+  const stop = new AbortController();
+  onCleanup(() => stop.abort()); // closed: the camera goes off
+  const video = document.createElement('video');
+  setScanTrouble('');
+  scan(video, stop.signal).then(
+    isbn => {
+      navigator.vibrate?.(40);
+      batch(() => {
+        setScanning(false);
+        setTyped(isbn);
+      });
+      add();
+    },
+    e => {
+      if (e instanceof ScanError) setScanTrouble(TROUBLE[e.reason]);
+      else if (!stop.signal.aborted) setScanTrouble(TROUBLE.other);
+    },
+  );
+  const close = () => setScanning(false);
+  const escape = (e: KeyboardEvent) => e.key === 'Escape' && close();
+  document.addEventListener('keydown', escape);
+  onCleanup(() => document.removeEventListener('keydown', escape));
+  return html`<div class="scanner" role="dialog" aria-modal="true" aria-label="Scan a barcode">
+    ${video}
+    <div class="aim" aria-hidden="true"><span class="laser"></span></div>
+    <p class="tell">${() => scanTrouble() || 'Point at the barcode on the back cover'}</p>
+    <button class="close" @click=${close}>Cancel</button>
+  </div>`;
+}
+
 // On a phone the parts stack (the shelf before the backup); on a wide
 // screen the side column holds all but the shelf, and stays in view.
 mount(
   document.getElementById('app') as HTMLElement,
   html`<div class="layout">
     <aside class="side">${hero()} ${addBar()} ${toolbar()} ${backup()}</aside>
+    ${scanner}
     <section class="main" aria-label="Your shelf">
       ${empty}
       <ul class="shelf">

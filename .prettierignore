@@ -1,3 +1,4 @@
 src/spark/
 node_modules/
 build/
+public/vendor/

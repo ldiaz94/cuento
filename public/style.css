@@ -268,7 +268,7 @@ h1 {
   flex-wrap: wrap;
 }
 .add input {
-  flex: 1 1 180px;
+  flex: 1 1 120px;
   letter-spacing: 0.02em;
 }
 .add form > button,
@@ -281,6 +281,105 @@ h1 {
 .by-hand > button:hover {
   filter: brightness(1.05);
 }
+/* Scan sits between the field and Add, in the card's colours; on a
+   phone it is just its icon. */
+.add form > .scan {
+  order: 1;
+  padding: 0 14px;
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.add form > button:not(.scan) {
+  order: 2;
+}
+@media (max-width: 480px) {
+  .scan .label {
+    display: none;
+  }
+}
+.scan svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The camera sheet: the camera fills the screen; a frame to aim the
+   barcode into, with a sweeping line; what to do, and Cancel. */
+.scanner {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: #000;
+  color: #fff;
+  animation: sheet 0.35s var(--glide) both;
+}
+@keyframes sheet {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+.scanner video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.aim {
+  position: relative;
+  width: min(80vw, 420px);
+  aspect-ratio: 2 / 1;
+  border-radius: 18px;
+  box-shadow: 0 0 0 100vmax #0008; /* darkens all but the frame */
+  outline: 3px solid #fff;
+  overflow: hidden;
+}
+.laser {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 12px 2px var(--accent);
+  animation: sweep 1.8s ease-in-out infinite alternate;
+}
+@keyframes sweep {
+  from {
+    top: 12%;
+  }
+  to {
+    top: 88%;
+  }
+}
+.tell {
+  position: absolute;
+  top: max(24px, env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  margin: 0;
+  text-align: center;
+  font: 600 18px/1.3 var(--sans);
+  text-shadow: 0 1px 6px #000;
+}
+.scanner .close {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  min-width: 140px;
+  border: 0;
+  border-radius: 999px;
+  background: #fffe;
+  color: #1a1410;
+}
+
 .by-hand {
   margin-top: 10px;
   padding: 14px;

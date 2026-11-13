@@ -127,6 +127,13 @@ test('filters and search narrow the shelf, and the counts follow', async () => {
   assert.match((await page.locator('.chip').nth(1).textContent()) ?? '', /2/);
 });
 
+test('Scan opens the camera sheet, which says when there is no camera, and Escape closes it', async () => {
+  await page.click('.scan');
+  await page.waitForSelector('text=/camera|Type the ISBN/i');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.scanner', { state: 'detached' });
+});
+
 test('the shelf is still there after a reload, with no page errors', async () => {
   await page.reload();
   await page.waitForSelector('.book');

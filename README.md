@@ -2,8 +2,8 @@
   <img src="doc/img/banner.svg" alt="cuento: count the books you read. Cuca the bookworm on a red book, beside a shelf of spines" width="800">
 </p>
 
-cuento keeps the books you read. Type a book's ISBN (soon: scan its
-barcode), and cuento finds its title, author and cover, and puts it on
+cuento keeps the books you read. Scan a book's barcode or type its
+ISBN, and cuento finds its title, author and cover, and puts it on
 your shelf: want to read, reading, or read, with the dates, a rating and
 notes. It counts what you finished this year. It runs in the browser,
 keeps your shelf on your device, works offline, and needs no account.
@@ -46,6 +46,7 @@ for another.
 | To                       | Do                                                             |
 | ------------------------ | -------------------------------------------------------------- |
 | Add a book               | Type its ISBN (10 or 13 digits, hyphens or not) and **Add**    |
+| Scan a book              | Tap the barcode button, aim at the back cover's barcode        |
 | Add one no service knows | Add its ISBN, then its title and author by hand                |
 | Start or finish a book   | Change its status: starting dates it, finishing dates it       |
 | Rate a read book         | Tap a star; tap the same star again to clear it                |
@@ -62,18 +63,23 @@ but export now and then.
 
 ## How it works
 
-Four ideas, a module each, read in this order:
+Five ideas, a module each, read in this order:
 
 1. **An ISBN is a check digit away from wrong** ([src/isbn.ts](src/isbn.ts)).
    Both lengths are checked, and every book is kept by its ISBN-13.
-2. **Two services, and offline is not "no such book"**
+2. **A barcode is read twice before it is believed**
+   ([src/scan.ts](src/scan.ts)). The browser's own BarcodeDetector where
+   it has one; elsewhere (iPhone Safari) zxing-wasm, self-hosted in
+   `public/vendor/zxing/` (`robbie zxing`) and fetched only then. Only an
+   EAN-13 that is an ISBN counts, and only when two reads in a row agree.
+3. **Two services, and offline is not "no such book"**
    ([src/lookup.ts](src/lookup.ts)). Open Library first, Google Books
    when it has no record; a lookup that reached neither throws. Only
    `https:` cover URLs are kept, since spark does not sanitise attributes.
-3. **The shelf is plain data** ([src/shelf.ts](src/shelf.ts)). A book is
+4. **The shelf is plain data** ([src/shelf.ts](src/shelf.ts)). A book is
    a record; a status brings its dates; the shelf is kept in
    `localStorage` and travels as an export file.
-4. **The page is signals and templates** ([src/app.ts](src/app.ts)). The
+5. **The page is signals and templates** ([src/app.ts](src/app.ts)). The
    books are a signal; a computed filters and searches them; spark's keyed
    `each()` keeps one row per book, updated in place.
 
@@ -96,13 +102,16 @@ them as they are.
 `robbie check`: strict TypeScript over the app and the tests; the pure modules in Node
 (check digits, the lookup's fallback and offline case, unsafe cover URLs,
 status dates, imports, a full or broken storage); and the page in
-headless Chromium with the services faked (adding, every note the ISBN
+headless Chromium with the services faked (adding, the scanner sheet, every note the ISBN
 field gives, adding by hand, statuses and ratings, filters and search, a
 reload, the page opening with the network cut, and that a book's title never becomes HTML).
+And the scanner in Chromium with a fake camera filming a drawn barcode
+(`test/scan.test.ts`, needs ffmpeg): zxing reads it, and the camera goes
+off after a read, a stop or a missing camera.
 
 ## Left out
 
-- **Scanning a barcode**: the next step.
+- **The torch, zoom and other barcodes** when scanning.
 - **Limiting the covers kept offline**: they are kept as seen.
 - **Sync between devices**: export and import carry a shelf.
 - **Editions, series and reading goals**: a book is one ISBN.
