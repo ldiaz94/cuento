@@ -85,6 +85,27 @@ export async function refresh() {
   }
 }
 
+/** Keeps a signed-in device on its account's shelf. Another device may
+ * have given the account another shelf; on opening, and on coming back
+ * to the screen, a device syncing a different one joins the account's (a
+ * merge: books only here go to it). A device that stopped syncing stays
+ * stopped. */
+export function follow() {
+  const check = async () => {
+    try {
+      await refresh();
+    } catch {
+      return; // offline, or the server is away: next time
+    }
+    const shelf = me()?.shelf;
+    if (shelf && code() && shelf !== code()) await join(shelf).catch(() => {});
+  };
+  check();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') check();
+  });
+}
+
 // ---- Passkeys ------------------------------------------------------------------
 
 /** Why a passkey couldn't be made or used, in words. */
