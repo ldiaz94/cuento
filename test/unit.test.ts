@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toIsbn13, show } from '../src/isbn.ts';
 import { bookCode } from '../src/scan.ts';
-import { lookup } from '../src/lookup.ts';
+import { lookup, search } from '../src/lookup.ts';
 import { newBook, withStatus, imported, exported, merge, load, save } from '../src/shelf.ts';
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
@@ -104,4 +104,55 @@ test('scanned codes: only an ISBN-13 with the right check digit is a book', () =
   assert.equal(bookCode('9780306406158'), null); // wrong check digit
   assert.equal(bookCode('5012345678900'), null); // a product, not a book
   assert.equal(bookCode('0306406152'), null); // ISBN-10 is not an EAN-13
+});
+
+test('search: Open Library hits mapped, no-ISBN docs skipped, duplicates dropped', async () => {
+  const ol = {
+    docs: [
+      {
+        title: 'Dune',
+        subtitle: 'Book One',
+        author_name: ['Frank Herbert'],
+        isbn: ['0306406152', 'bad'],
+        cover_i: 42,
+        first_publish_year: 1965,
+        number_of_pages_median: 412,
+      },
+      { title: 'No ISBN', isbn: ['123'] },
+      { title: 'Dune again', isbn: ['9780306406157'] },
+    ],
+  };
+  const hits = await search('dune', fakeFetch({ ol, gb: new Error('not asked') }).get);
+  assert.deepEqual(hits, [
+    {
+      isbn: '9780306406157',
+      title: 'Dune: Book One',
+      authors: ['Frank Herbert'],
+      cover: 'https://covers.openlibrary.org/b/id/42-M.jpg',
+      pages: 412,
+      published: '1965',
+    },
+  ]);
+});
+
+test('search: Google Books when Open Library finds none; ISBN-13 preferred', async () => {
+  const volumeInfo = {
+    title: 'Dune',
+    industryIdentifiers: [
+      { type: 'ISBN_10', identifier: '0804429573' },
+      { type: 'ISBN_13', identifier: '9780306406157' },
+    ],
+  };
+  const fake = fakeFetch({ ol: { docs: [] }, gb: { items: [{ volumeInfo }] } });
+  const hits = await search('dune', fake.get);
+  assert.deepEqual(
+    hits.map(h => h.isbn),
+    ['9780306406157'],
+  );
+  assert.match(fake.asked[1] ?? '', /q=dune/);
+});
+
+test('search: unreachable services throw', async () => {
+  const down = fakeFetch({ ol: new TypeError('offline'), gb: new TypeError('offline') });
+  await assert.rejects(search('dune', down.get), /Could not reach/);
 });

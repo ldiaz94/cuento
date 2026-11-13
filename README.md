@@ -2,8 +2,9 @@
   <img src="doc/img/banner.svg" alt="cuento: count the books you read. Tilde the bookworm on a red book, beside a shelf of spines" width="800">
 </p>
 
-cuento keeps the books you read. Scan a book's barcode or type its
-ISBN, and cuento finds its title, author and cover, and puts it on
+cuento keeps the books you read. Scan a book's barcode, type its ISBN,
+or search by title or author, and cuento fills in the title, author and
+cover, and puts it on
 your shelf: want to read, reading, or read, with the dates, a rating and
 notes. It counts what you finished this year. It runs in the browser,
 keeps your shelf on your device, works offline, and needs no account.
@@ -48,6 +49,7 @@ for another.
 | ------------------------ | -------------------------------------------------------------- |
 | Add a book               | Type its ISBN (10 or 13 digits, hyphens or not) and **Add**    |
 | Scan a book              | Tap the barcode button, aim at the back cover's barcode        |
+| Find a book to add       | Type words from its title or author and **Search**; tap one    |
 | Add one no service knows | Add its ISBN, then its title and author by hand                |
 | Start or finish a book   | Change its status: starting dates it, finishing dates it       |
 | Rate a read book         | Tap a star; tap the same star again to clear it                |
@@ -77,6 +79,8 @@ Five ideas, a module each, read in this order:
    ([src/lookup.ts](src/lookup.ts)). Open Library first, Google Books
    when it has no record; a lookup that reached neither throws. Only
    `https:` cover URLs are kept, since spark does not sanitise attributes.
+   A search by title or author asks the same two, and keeps only the
+   books found with an ISBN, since a book is kept by its ISBN.
 4. **The shelf is plain data** ([src/shelf.ts](src/shelf.ts)). A book is
    a record; a status brings its dates; the shelf is kept in
    `localStorage` and travels as an export file.

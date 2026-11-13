@@ -23,6 +23,17 @@ const LIBRARY: Record<string, object> = {
   },
 };
 
+/** What the fake Open Library search finds, whatever is asked. */
+const SEARCH = [
+  {
+    title: 'The Hobbit',
+    author_name: ['J. R. R. Tolkien'],
+    isbn: ['0261103342'],
+    first_publish_year: 1937,
+  },
+  { title: 'Typesetting Mathematics', author_name: ['A. Writer'], isbn: ['9780306406157'] },
+];
+
 let server: Server, browser: Browser, page: Page;
 /** Errors the page threw. */
 const errors: string[] = [];
@@ -37,6 +48,7 @@ before(async () => {
   await page.route(/openlibrary\.org|googleapis\.com/, route => {
     if (!online) return route.abort();
     const url = route.request().url();
+    if (url.includes('search.json')) return route.fulfill({ json: { docs: SEARCH } });
     const isbn = /isbn:(\d+)/i.exec(url)?.[1] || '';
     const known = LIBRARY[isbn];
     return route.fulfill({
@@ -56,7 +68,7 @@ after(async () => {
 
 /** Types text in the ISBN field and adds it. */
 async function addIsbn(text: string) {
-  await page.fill('[aria-label=ISBN]', text);
+  await page.fill('.add form input', text);
   await page.click('.add form > button');
 }
 /** The text of the first element matching selector ('' when none). */
@@ -72,7 +84,7 @@ test('a typed ISBN-10 is looked up and shelved as its ISBN-13', async () => {
   await addIsbn('0-306-40615-2');
   await page.waitForSelector('.book');
   assert.deepEqual(await titles(), ['Typesetting Mathematics']);
-  assert.equal(await page.inputValue('[aria-label=ISBN]'), '');
+  assert.equal(await page.inputValue('.add form input'), '');
   assert.equal(await page.$('.empty'), null);
 });
 
@@ -161,4 +173,15 @@ test('the shelf is still there after a reload, with no page errors', async () =>
   });
   assert.deepEqual(statuses.sort(), ['read', 'want', 'want']);
   assert.deepEqual(errors, []);
+});
+
+test('words are searched for, and a book found is added with a tap', async () => {
+  await addIsbn('hobbit tolkien');
+  await page.waitForSelector('.hit');
+  assert.equal(await page.locator('.hit').count(), 2);
+  assert.equal(await page.locator('.hit').nth(1).isDisabled(), true); // on the shelf already
+  await page.locator('.hit').nth(0).click();
+  await page.waitForFunction(() => document.querySelectorAll('.book').length === 4);
+  assert.equal((await titles())[0], 'The Hobbit');
+  assert.equal(await page.$('.hits'), null);
 });

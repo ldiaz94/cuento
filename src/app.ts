@@ -11,7 +11,8 @@
 import { signal, computed, effect, batch, onCleanup, html, each, mount } from './spark/index.js';
 import type { Getter } from './spark/index.js';
 import { toIsbn13, show } from './isbn.ts';
-import { lookup } from './lookup.ts';
+import { lookup, search } from './lookup.ts';
+import type { Hit } from './lookup.ts';
 import { scan, canScan, ScanError } from './scan.ts';
 import type { Reason } from './scan.ts';
 import {
@@ -32,8 +33,12 @@ import type { Book, Status } from './shelf.ts';
 type BookGetter = Getter<Book>;
 /** Where adding a book is: looking it up, or why it can't be added. */
 interface Adding {
-  state: 'looking' | 'invalid' | 'there' | 'missing' | 'offline';
+  state: 'looking' | 'invalid' | 'there' | 'missing' | 'offline' | 'searching' | 'found';
   isbn?: string;
+  /** The words searched for, when what was typed is not an ISBN. */
+  words?: string;
+  /** The books the search found. */
+  hits?: Hit[];
 }
 
 /** The text of the field an input event came from. */
@@ -146,9 +151,15 @@ function shelve(book: Book) {
   );
 }
 
-/** Looks up the typed ISBN and adds its book, or says why it can't. */
+/** Whether text is words to search for rather than an ISBN (right or
+ * wrong): anything but digits, spaces, hyphens and a final X. */
+const isWords = (text: string) => /[^\d\s-]/.test(text.trim().replace(/x$/i, ''));
+
+/** Looks up the typed ISBN and adds its book, or says why it can't; words
+ * that are no ISBN are searched for instead. */
 async function add() {
   const isbn = toIsbn13(typed());
+  if (!isbn && isWords(typed())) return find(typed().trim());
   if (!isbn) return setAdding({ state: 'invalid' });
   if (books().some(b => b.isbn === isbn)) return setAdding({ state: 'there', isbn });
   setAdding({ state: 'looking', isbn });
@@ -162,11 +173,50 @@ async function add() {
   }
 }
 
+/** Searches titles and authors for words, and lists the books found. */
+async function find(words: string) {
+  setAdding({ state: 'searching', words });
+  try {
+    const hits = await search(words);
+    if (adding()?.words !== words) return; // the reader moved on meanwhile
+    setAdding({ state: 'found', words, hits });
+  } catch {
+    setAdding({ state: 'offline', words });
+  }
+}
+
+/** The books a search found, to pick one from; one on the shelf already
+ * says so. */
+function hitList(words: string, hits: Hit[]) {
+  if (!hits.length)
+    return html`<p class="note">No books found for “${words}”. Try fewer words, or the ISBN.</p>`;
+  const on = (h: Hit) => books().some(b => b.isbn === h.isbn);
+  return html`<ul class="hits" aria-label="Books found">
+    ${hits.map(
+      h =>
+        html`<li>
+          <button class="hit" .disabled=${on(h)} @click=${() => shelve(newBook(h.isbn, h))}>
+            ${h.cover
+              ? html`<img src=${h.cover} alt="" loading="lazy" />`
+              : html`<span class="nocover" style=${{ '--cloth': cloth(h.isbn) }}></span>`}
+            <span class="what">
+              <strong>${h.title}</strong>
+              <span>${[h.authors?.join(', '), h.published].filter(Boolean).join(' · ')}</span>
+            </span>
+            <span class="plus" aria-hidden="true">${on(h) ? '✓' : '+'}</span>
+          </button>
+        </li>`,
+    )}
+  </ul>`;
+}
+
 /** The line under the ISBN field saying how adding is going. */
 function addingNote() {
   const a = adding();
   if (!a) return null;
   const isbn = a.isbn || '';
+  if (a.state === 'searching') return html`<p class="note looking">Searching for “${a.words}”</p>`;
+  if (a.state === 'found') return hitList(a.words || '', a.hits || []);
   if (a.state === 'looking') return html`<p class="note looking">Looking up ${show(isbn)}</p>`;
   if (a.state === 'invalid')
     return html`<p class="note bad">That isn't an ISBN: check the digits.</p>`;
@@ -212,14 +262,14 @@ function addBar() {
   return html`<section class="add">
     <form @submit=${submit}>
       <input
-        inputmode="numeric"
+        enterkeyhint="search"
         autocomplete="off"
-        placeholder="ISBN: 10 or 13 digits"
-        aria-label="ISBN"
+        placeholder="ISBN, title or author"
+        aria-label="ISBN, title or author"
         .value=${typed}
         @input=${(e: Event) => setTyped(valueOf(e))}
       />
-      <button>Add book</button>
+      <button>${() => (isWords(typed()) ? 'Search' : 'Add book')}</button>
       ${canScan()
         ? html`<button
             type="button"

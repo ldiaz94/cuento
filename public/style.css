@@ -380,6 +380,98 @@ h1 {
   color: #1a1410;
 }
 
+/* The books a search found: a card of rows, each one tap to add. */
+.hits {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  animation: unfold 0.35s var(--glide) both;
+}
+.hits li {
+  animation: rise 0.4s var(--glide) both;
+}
+.hits li:nth-child(2) {
+  animation-delay: 30ms;
+}
+.hits li:nth-child(3) {
+  animation-delay: 60ms;
+}
+.hits li:nth-child(4) {
+  animation-delay: 90ms;
+}
+.hits li:nth-child(5) {
+  animation-delay: 120ms;
+}
+.hits li:nth-child(n + 6) {
+  animation-delay: 150ms;
+}
+.hit {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: stretch;
+  gap: 12px;
+  padding: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  font-weight: inherit;
+}
+.hit:hover:not(:disabled) {
+  background: var(--paper-2);
+}
+.hit:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.hit img,
+.hit .nocover {
+  width: 40px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 2px 4px 4px 2px;
+  background: var(--cloth, var(--line));
+  box-shadow: 0 1px 3px #0003;
+}
+.hit .what {
+  display: grid;
+  min-width: 0;
+}
+.hit strong {
+  font: 600 16px/1.25 var(--serif);
+  font-variation-settings: 'SOFT' 50;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hit .what span {
+  color: var(--muted);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hit .plus {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 700;
+}
+
 .by-hand {
   margin-top: 10px;
   padding: 14px;
