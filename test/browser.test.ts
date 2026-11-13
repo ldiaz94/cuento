@@ -103,11 +103,11 @@ test('a book no service knows is added by hand, and its text stays text', async 
 
 test('reading a book dates it, and a read book can be rated', async () => {
   const row = page.locator('.book', { hasText: 'Typesetting' });
-  await row.locator('select').selectOption('read');
+  await row.locator('[data-status=read]').click();
   await row.locator('.star').nth(3).click();
   assert.equal(await row.locator('.star.on').count(), 4);
-  assert.equal(await row.locator('select').inputValue(), 'read');
-  assert.match(await text('.count'), /^1 read this year/);
+  assert.equal(await row.locator('[data-status=read]').getAttribute('aria-checked'), 'true');
+  assert.match((await text('.count')).replace(/\s+/g, ' ').trim(), /^1 book read in \d{4}$/);
   await row.locator('.title').click();
   assert.match(await row.locator('input[type=date]').nth(2).inputValue(), /^\d{4}-\d\d-\d\d$/);
 });
@@ -129,9 +129,9 @@ test('the shelf is still there after a reload, with no page errors', async () =>
   await page.waitForSelector('.book');
   assert.equal((await titles()).length, 3);
   assert.equal(await page.locator('.star.on').count(), 4);
-  // Each select shows its book's status (spark 0.1.0 showed the first option).
-  const statuses = await page.$$eval('.book select', els =>
-    (els as HTMLSelectElement[]).map(e => e.value),
+  // Each book's switch shows its own status, after a reload too.
+  const statuses = await page.$$eval('.seg [aria-checked=true]', els =>
+    els.map(e => (e as HTMLElement).dataset.status ?? ''),
   );
   assert.deepEqual(statuses.sort(), ['read', 'want', 'want']);
   assert.deepEqual(errors, []);

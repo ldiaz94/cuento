@@ -50,3 +50,12 @@ task loc:
 # To Cloudflare, once checked.
 task deploy: check fmt
     npx wrangler deploy
+
+# The fonts, self-hosted from Fontsource (OFL): Fraunces with all its
+# axes for titles, Instrument Sans for the rest; Latin and Latin Extended.
+task fonts:
+    mkdir -p public/fonts
+    cp node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2 node_modules/@fontsource-variable/fraunces/files/fraunces-latin-ext-full-normal.woff2 public/fonts/
+    cp node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2 node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-ext-wght-normal.woff2 public/fonts/
+    cp node_modules/@fontsource-variable/fraunces/LICENSE public/fonts/OFL-Fraunces.txt
+    cp node_modules/@fontsource-variable/instrument-sans/LICENSE public/fonts/OFL-InstrumentSans.txt

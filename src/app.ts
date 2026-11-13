@@ -39,6 +39,8 @@ const valueOf = (e: Event) => (e.target as HTMLInputElement).value;
 
 /** What each status is called on the page. */
 const LABELS: Record<Status, string> = { want: 'Want to read', reading: 'Reading', read: 'Read' };
+/** What each status is called on a book's switch, where room is short. */
+const SHORT: Record<Status, string> = { want: 'Want', reading: 'Reading', read: 'Read' };
 /** The filters above the shelf: every book, or one status. */
 const FILTERS: ('all' | Status)[] = ['all', ...STATUSES];
 
@@ -73,6 +75,9 @@ const readThisYear = computed(
   () =>
     books().filter(b => b.status === 'read' && b.finished.startsWith(today().slice(0, 4))).length,
 );
+
+/** Books being read now. */
+const readingNow = computed(() => books().filter(b => b.status === 'reading').length);
 
 /** Changes the book with isbn by change(book) -> book. */
 function update(isbn: string, change: (book: Book) => Book) {
@@ -157,12 +162,12 @@ function addBar() {
       <input
         inputmode="numeric"
         autocomplete="off"
-        placeholder="ISBN, e.g. 978-0-306-40615-7"
+        placeholder="ISBN: 10 or 13 digits"
         aria-label="ISBN"
         .value=${typed}
         @input=${(e: Event) => setTyped(valueOf(e))}
       />
-      <button>Add</button>
+      <button>Add book</button>
     </form>
     ${addingNote}
   </section>`;
@@ -200,13 +205,29 @@ function cover(book: BookGetter) {
   return () =>
     book().cover
       ? html`<img class="cover" src=${book().cover} alt="" loading="lazy" />`
-      : html`<div class="cover spine" style=${{ '--hue': hue(book().isbn) }}>
-          ${book().title.slice(0, 40)}
+      : html`<div class="cover spine" style=${{ '--cloth': cloth(book().isbn) }}>
+          <span>${book().title.slice(0, 48)}</span>
         </div>`;
 }
-/** A colour for a spine, the same every time for the same book. */
-function hue(isbn: string) {
-  return String(Number(isbn.slice(-4)) % 360);
+/** Bookcloth colours for spines: oxblood, navy, forest, ochre, teal,
+ * plum, slate and rust. */
+const CLOTHS = [
+  '#7d2f2b',
+  '#26476e',
+  '#2f5e4a',
+  '#a27b2c',
+  '#1f6164',
+  '#5d3b66',
+  '#4b5762',
+  '#9b4b25',
+];
+
+/** A cloth for a spine, the same every time for the same book: the ISBN
+ * hashed (FNV-1a), so books with close ISBNs still differ. */
+function cloth(isbn: string) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < isbn.length; i++) h = Math.imul(h ^ isbn.charCodeAt(i), 0x01000193);
+  return CLOTHS[(h >>> 0) % CLOTHS.length] ?? CLOTHS[0];
 }
 
 /** Stars to rate a read book; the one given again clears the rating. */
@@ -266,7 +287,7 @@ function details(book: BookGetter) {
 /** One book on the shelf. */
 function row(book: BookGetter) {
   const isOpen = () => open() === book().isbn;
-  const move = (e: Event) => update(book().isbn, b => withStatus(b, valueOf(e) as Status));
+  const move = (s: Status) => update(book().isbn, b => withStatus(b, s));
   return html`<li class=${() => ({ book: true, open: isOpen() })}>
     ${cover(book)}
     <div class="body">
@@ -279,9 +300,19 @@ function row(book: BookGetter) {
         <span class="authors">${() => book().authors.join(', ')}</span>
       </button>
       <div class="status">
-        <select aria-label="Status" .value=${() => book().status} @change=${move}>
-          ${STATUSES.map(s => html`<option value=${s}>${LABELS[s]}</option>`)}
-        </select>
+        <div class="seg" role="radiogroup" aria-label="Status">
+          ${STATUSES.map(
+            s =>
+              html`<button
+                role="radio"
+                data-status=${s}
+                aria-checked=${() => String(book().status === s)}
+                @click=${() => move(s)}
+              >
+                ${SHORT[s]}
+              </button>`,
+          )}
+        </div>
         ${() => (book().status === 'read' ? stars(book) : null)}
       </div>
       ${() => (isOpen() ? details(book) : null)}
@@ -292,11 +323,13 @@ function row(book: BookGetter) {
 /** What the shelf says when it shows nothing. */
 function empty() {
   if (shown().length) return null;
-  return html`<p class="empty">
-    ${books().length
-      ? 'No book matches.'
-      : 'Your shelf is empty. Add a book by its ISBN, on the back cover above the barcode.'}
-  </p>`;
+  return books().length
+    ? html`<p class="empty">No book matches. Try fewer words, or another shelf.</p>`
+    : html`<div class="empty">
+        <img src="icon.svg" alt="" width="120" height="120" />
+        <p><strong>Your shelf is empty.</strong></p>
+        <p>Add a book by its ISBN: the number on the back cover, above the barcode.</p>
+      </div>`;
 }
 
 /** Saving the shelf to a file, and bringing one back. */
@@ -336,15 +369,33 @@ function backup() {
   </footer>`;
 }
 
+/** The top: Cuca, the name, and what cuento counts. */
+function hero() {
+  const year = today().slice(0, 4);
+  return html`<header class="hero">
+    <div class="brand">
+      <img src="icon.svg" alt="" width="44" height="44" />
+      <h1>cuento</h1>
+    </div>
+    <p class="count">
+      <span class="big">${readThisYear}</span>
+      <span class="what">${() => (readThisYear() === 1 ? 'book' : 'books')} read in ${year}</span>
+    </p>
+    <p class="sub">${() => books().length} on the shelf · ${readingNow} reading now</p>
+  </header>`;
+}
+
+// On a phone the parts stack (the shelf before the backup); on a wide
+// screen the side column holds all but the shelf, and stays in view.
 mount(
   document.getElementById('app') as HTMLElement,
-  html`<header>
-      <h1>cuento</h1>
-      <p class="count">${() => readThisYear()} read this year</p>
-    </header>
-    ${addBar()} ${toolbar()} ${empty}
-    <ul class="shelf">
-      ${each(shown, b => b.isbn, row)}
-    </ul>
-    ${backup()}`,
+  html`<div class="layout">
+    <aside class="side">${hero()} ${addBar()} ${toolbar()} ${backup()}</aside>
+    <section class="main" aria-label="Your shelf">
+      ${empty}
+      <ul class="shelf">
+        ${each(shown, b => b.isbn, row)}
+      </ul>
+    </section>
+  </div>`,
 );
