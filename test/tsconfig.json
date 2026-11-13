@@ -13,6 +13,8 @@
     "../tools/*.ts",
     "../worker/store.ts",
     "../worker/accounts.ts",
-    "../worker/session.ts"
+    "../worker/session.ts",
+    "../worker/push.ts",
+    "../worker/reminders.ts"
   ]
 }

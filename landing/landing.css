@@ -1,0 +1,901 @@
+/* cuento's landing page: the app's paper and ink, its bookbinder's red,
+ * Fraunces set large for the titles and Instrument Sans for the rest;
+ * a shelf of cloth spines, and the year in review on a band of red
+ * bookcloth stamped in gold. A phone first, one column; from 900px wide
+ * the hero sits beside its phone. Light and dark follow the system.
+ * Motion: Tilde sways and blinks, the hero rises once, and the rest
+ * rises into view as it scrolls in, where the browser can tie animation
+ * to scrolling; none of it when motion is reduced. The fonts are the
+ * app's, under /app/fonts/. */
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/app/fonts/fraunces-latin-full-normal.woff2) format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/app/fonts/fraunces-latin-ext-full-normal.woff2) format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url(/app/fonts/instrument-sans-latin-wght-normal.woff2) format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url(/app/fonts/instrument-sans-latin-ext-wght-normal.woff2) format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+:root {
+  --paper: #f7f2e8;
+  --paper-2: #efe7d8;
+  --card: #fffdf8;
+  --ink: #2a241d;
+  --muted: #6b6054; /* the app's muted, a shade darker for long text */
+  --line: #e4dac8;
+  --accent: #b5532c; /* a bookbinder's red */
+  --accent-deep: #8e3d1f; /* the red's shadow, under a pressed button */
+  --accent-ink: #fff8f0;
+  --plate: #f6eedd; /* the bookplates the drawings sit on */
+  --grain: 0.06; /* how much the paper's fibres show */
+  --cream: #f6eedd;
+  --gold: #e2c06e;
+  --foil: linear-gradient(
+    105deg,
+    #9a7425 0%,
+    #f4dc94 22%,
+    #b98e33 40%,
+    #fbecb8 55%,
+    #a07a2a 75%,
+    #e7c873 100%
+  );
+  --shadow: 0 1px 2px #3a2a1a14, 0 10px 30px #3a2a1a14;
+  --glide: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --serif: 'Fraunces', ui-serif, Georgia, serif;
+  --sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --max: 1200px;
+  --gutter: max(20px, env(safe-area-inset-left));
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171410;
+    --paper-2: #1e1a15;
+    --card: #221d17;
+    --ink: #f1e9dc;
+    --muted: #b3a693;
+    --line: #3a3229;
+    --accent: #e68a5f;
+    --accent-deep: #a95a35;
+    --accent-ink: #20140d;
+    --plate: #ebe0ca;
+    --grain: 0.09;
+    --shadow: 0 1px 2px #0006, 0 10px 30px #0005;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 17px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  /* Paper: a warm light from the top left over fine fibres. */
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 15% 0%,
+      color-mix(in srgb, var(--card) 70%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(ellipse 60% 40% at 100% 30%, #c0702a10, transparent 70%), var(--paper);
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .15 0 0 0 1.4 -.4'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+a {
+  color: inherit;
+  text-decoration-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+a:hover {
+  color: var(--accent);
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.hidden,
+.defs {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 9;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.skip:focus {
+  top: 12px;
+}
+
+/* Buttons: a cloth label, pressed into the page. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 24px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 3px 0 var(--line);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    transform 0.15s var(--glide),
+    box-shadow 0.15s var(--glide);
+}
+.button:hover {
+  color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--line);
+}
+.button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line);
+}
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 3px 0 var(--accent-deep);
+  color: var(--accent-ink);
+}
+.button.primary:hover {
+  box-shadow: 0 4px 0 var(--accent-deep);
+}
+.button.small {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* The serif set large: soft and a little wonky, as in the app. */
+h1,
+h2,
+h3,
+.lede,
+.big,
+.mark span {
+  font-family: var(--serif);
+  font-variation-settings:
+    'SOFT' 100,
+    'WONK' 1;
+}
+.kicker {
+  color: var(--muted);
+  font: 600 13px/1.3 var(--sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.kicker i,
+.name i {
+  font-style: normal;
+  color: var(--accent);
+}
+.section-title {
+  max-width: var(--max);
+  margin: 0 auto 28px;
+  padding: 0 var(--gutter);
+  font-size: clamp(36px, 8vw, 60px);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* The bar along the top. */
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: max(14px, env(safe-area-inset-top)) var(--gutter) 0;
+}
+.mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.mark span {
+  font-size: 24px;
+  font-weight: 700;
+}
+.bar nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 15px;
+  font-weight: 550;
+}
+.bar nav a:not(.button) {
+  display: none;
+  text-decoration: none;
+}
+@media (min-width: 760px) {
+  .bar nav a:not(.button) {
+    display: inline;
+  }
+}
+
+/* The hero: Tilde on her book beside the name, then the phone. */
+.hero {
+  display: grid;
+  overflow-x: clip; /* the cover behind the phone may reach past the edge */
+  gap: 48px;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 32px var(--gutter) 56px;
+}
+.pitch {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: end;
+  column-gap: 4px;
+}
+.pitch .kicker,
+.pitch .lede,
+.pitch .sub,
+.pitch .actions {
+  grid-column: 1 / -1;
+}
+.pitch .kicker {
+  order: -1;
+  margin-bottom: 8px;
+}
+.pitch .tilde {
+  width: clamp(84px, 22vw, 150px);
+  height: auto;
+  margin-bottom: 2px;
+  overflow: visible;
+}
+h1 {
+  font-size: clamp(76px, 22vw, 180px);
+  font-weight: 750;
+  font-variation-settings:
+    'SOFT' 100,
+    'WONK' 1,
+    'opsz' 144;
+  line-height: 0.8;
+  letter-spacing: -0.045em;
+  margin-bottom: 0.08em;
+}
+.lede {
+  margin-top: 22px;
+  font-size: clamp(28px, 7vw, 46px);
+  font-weight: 560;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+.lede span {
+  display: block;
+  color: var(--accent);
+}
+.sub {
+  max-width: 34em;
+  margin: 18px 0 28px;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* The phone, with the year's red cover peeking out behind it. */
+.stage {
+  position: relative;
+  justify-self: center;
+  width: min(300px, 74vw);
+  margin-right: 12vw;
+}
+.phone {
+  position: relative;
+  margin: 0;
+  padding: 9px;
+  border-radius: 48px;
+  background: linear-gradient(145deg, #3a322a, #14110d);
+  box-shadow:
+    inset 0 0 0 1.5px #ffffff1f,
+    0 2px 4px #0003,
+    0 30px 60px -10px #3a1d0a55,
+    0 60px 120px -30px #3a1d0a40;
+}
+/* The screen: a strip for the status bar, then the app. */
+.phone picture {
+  display: block;
+  overflow: hidden;
+  padding-top: 34px;
+  border-radius: 39px;
+  background: var(--paper);
+}
+.phone img {
+  aspect-ratio: 390 / 844;
+  object-fit: cover;
+}
+.phone::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 18px;
+  left: 50%;
+  width: 28%;
+  height: 22px;
+  border-radius: 12px;
+  background: #0d0b09;
+  transform: translateX(-50%);
+}
+.behind {
+  position: absolute;
+  top: 7%;
+  left: 52%;
+  width: 82%;
+  border-radius: 28px;
+  rotate: 9deg;
+  box-shadow: 0 30px 60px -12px #2a0d0866;
+}
+
+/* A shelf of cloth spines, gold-banded, on a wooden plank. */
+.shelf {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 3px;
+  height: 116px;
+  max-width: calc(var(--max) - 2 * 20px);
+  margin: 0 auto;
+  padding: 0 16px 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(#a06a3d, #6b4426) 0 calc(100% - 4px) / 100% 12px no-repeat,
+    linear-gradient(#0000002e, transparent) 0 100% / 100% 4px no-repeat;
+}
+.shelf i {
+  flex: none;
+  width: 26px;
+  height: var(--h);
+  border-radius: 3px 3px 0 0;
+  background:
+    linear-gradient(
+      transparent 10%,
+      #e2c06eb3 10% 13%,
+      transparent 13% 80%,
+      #e2c06eb3 80% 83%,
+      transparent 83%
+    ),
+    repeating-linear-gradient(0deg, #0000 0 2px, #00000014 2px 3px),
+    linear-gradient(90deg, #ffffff30, transparent 45%, #00000040), var(--c);
+  box-shadow: inset 0 0 0 1px #00000026;
+}
+.shelf i:nth-child(3n) {
+  width: 32px;
+}
+.shelf i:nth-child(5n + 1) {
+  width: 21px;
+}
+.shelf i:nth-child(7n + 3) {
+  rotate: -4deg;
+  transform-origin: bottom left;
+  margin-left: 6px;
+}
+
+/* The name, and who Tilde is. */
+.name {
+  max-width: 40em;
+  margin: 0 auto;
+  padding: 64px var(--gutter) 24px;
+  color: var(--muted);
+  text-align: center;
+}
+.name .big {
+  margin-bottom: 14px;
+  color: var(--ink);
+  font-size: clamp(25px, 5.6vw, 36px);
+  font-weight: 480;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.name b {
+  color: var(--ink);
+}
+
+/* What it does: a card each, its drawing on a round bookplate. */
+.features {
+  padding: 72px 0 88px;
+}
+.grid {
+  display: grid;
+  gap: 16px;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  list-style: none;
+}
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 1000px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+.feature {
+  padding: 26px 26px 28px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.plate {
+  width: 84px;
+  height: 84px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border-radius: 50%;
+  background: var(--plate);
+  /* A tooled gold ring inside the plate's edge. */
+  box-shadow:
+    inset 0 0 0 4px var(--plate),
+    inset 0 0 0 5.5px #c9a24f,
+    0 1px 0 #00000014;
+}
+.feature h3 {
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 620;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.feature p {
+  color: var(--muted);
+}
+
+/* The year in review, on red bookcloth: a fine weave, lit from above,
+   darker at the edges, inside a gold tooled frame. */
+.review {
+  --cloth: #7d2f2b;
+  position: relative;
+  padding: 80px 0 88px;
+  overflow: hidden;
+  color: var(--cream);
+  background:
+    repeating-linear-gradient(0deg, #0000 0 2px, #00000018 2px 3px),
+    repeating-linear-gradient(90deg, #0000 0 2px, #ffffff0a 2px 3px),
+    radial-gradient(ellipse at 50% 20%, #ffffff1c, #0000 55%, #00000059 100%), var(--cloth);
+}
+.review::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 6px transparent,
+    inset 0 0 0 7px #e2c06e80;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  .review {
+    --cloth: #6a2723;
+  }
+}
+.review-head {
+  max-width: 36em;
+  margin: 0 auto;
+  padding: 0 calc(var(--gutter) + 12px);
+  text-align: center;
+}
+.review .kicker {
+  color: var(--gold);
+}
+.review h2 {
+  margin: 10px 0 18px;
+  font-size: clamp(46px, 12vw, 104px);
+  font-weight: 650;
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+}
+.foil {
+  background: var(--foil) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1.5px 0 #00000070);
+}
+.review-head p:last-child {
+  color: #f6eeddd9;
+  font-size: 18px;
+}
+
+/* The cards: a row to swipe on a phone, a hand of cards on a wider
+   screen. */
+.cards {
+  display: flex;
+  gap: 14px;
+  margin: 44px 0 0;
+  padding: 16px 32px 28px;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 32px;
+  scrollbar-width: none;
+}
+.cards li {
+  flex: none;
+  width: min(62vw, 250px);
+  scroll-snap-align: center;
+}
+.cards img {
+  border-radius: 22px;
+  box-shadow:
+    0 0 0 1px #ffffff1a,
+    0 20px 40px -8px #1a0605aa;
+}
+@media (min-width: 1000px) {
+  .cards {
+    justify-content: center;
+    max-width: 1500px;
+    margin: 56px auto 0;
+    padding: 24px 40px 32px;
+    overflow: visible;
+  }
+  .cards li {
+    width: clamp(140px, 12.5vw, 220px);
+    margin: 0 -12px;
+    rotate: var(--r);
+    transition:
+      transform 0.35s var(--glide),
+      rotate 0.35s var(--glide);
+  }
+  .cards li:nth-child(even) {
+    transform: translateY(26px);
+  }
+  .cards li:hover {
+    position: relative;
+    z-index: 1;
+    rotate: 0deg;
+    transform: translateY(-14px) scale(1.06);
+  }
+}
+
+/* How to install: a card a kind of device, its steps numbered in red. */
+.install {
+  padding: 88px 0 40px;
+}
+.install .section-title {
+  margin-bottom: 12px;
+}
+.intro {
+  max-width: var(--max);
+  margin: 0 auto 28px;
+  padding: 0 var(--gutter);
+  color: var(--muted);
+  font-size: 18px;
+}
+.ways {
+  display: grid;
+  gap: 16px;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  list-style: none;
+}
+@media (min-width: 840px) {
+  .ways {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+.way {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.way h3 {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line);
+  font-size: 24px;
+  font-weight: 620;
+}
+.way ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.way ol li {
+  position: relative;
+  padding-left: 40px;
+  counter-increment: step;
+}
+.way ol li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 700 15px/1 var(--serif);
+}
+.note {
+  max-width: var(--max);
+  margin: 24px auto 0;
+  padding: 0 var(--gutter);
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Free, and open: the last word, on a deeper paper. */
+.open {
+  max-width: calc(var(--max) - 2 * 20px);
+  margin: 64px auto 0;
+  padding: 56px var(--gutter);
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.open h2 {
+  margin-bottom: 14px;
+  font-size: clamp(36px, 8vw, 56px);
+  font-weight: 650;
+  line-height: 1;
+}
+.open p:not(.actions) {
+  max-width: 34em;
+  margin: 0 auto 28px;
+  color: var(--muted);
+  font-size: 18px;
+}
+.open .actions {
+  justify-content: center;
+}
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px var(--gutter) max(40px, env(safe-area-inset-bottom));
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+.foot b {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+}
+
+/* From 900px: the hero beside its phone. */
+@media (min-width: 900px) {
+  .bar {
+    padding-top: 22px;
+  }
+  .hero {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: center;
+    gap: 40px;
+    padding-top: 56px;
+    padding-bottom: 88px;
+  }
+  .stage {
+    width: 320px;
+    margin-right: 90px;
+  }
+  .features {
+    padding-top: 96px;
+  }
+}
+
+/* Motion, only for those who don't mind it. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Tilde's head sways on her neck; now and then she blinks. */
+  .tilde .head {
+    transform-box: view-box;
+    transform-origin: 104px 124px;
+    animation: sway 6s ease-in-out infinite;
+  }
+  .tilde .eyes circle {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: blink 5s infinite;
+  }
+  /* The hero rises once, a line at a time. */
+  .pitch > *,
+  .stage {
+    animation: rise 0.9s var(--glide) both;
+  }
+  .pitch .kicker {
+    animation-delay: 0.05s;
+  }
+  .pitch h1 {
+    animation-delay: 0.12s;
+  }
+  .pitch .lede {
+    animation-delay: 0.22s;
+  }
+  .pitch .sub {
+    animation-delay: 0.3s;
+  }
+  .pitch .actions {
+    animation-delay: 0.38s;
+  }
+  .stage {
+    animation-delay: 0.3s;
+  }
+
+  /* The rest rises into view as it scrolls in, each a little after the
+     one before. */
+  @supports (animation-timeline: view()) {
+    .feature,
+    .way,
+    .name > *,
+    .section-title,
+    .review-head > *,
+    .cards li,
+    .shelf i {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry calc(var(--i, 0) * 6%) entry calc(70% + var(--i, 0) * 6%);
+    }
+    .shelf i {
+      animation-name: shelve;
+      animation-range: entry 20% cover 35%;
+    }
+    /* The gold catches the light as the band passes. */
+    .foil {
+      animation: shine linear both;
+      animation-timeline: view();
+    }
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+  }
+}
+@keyframes shelve {
+  from {
+    translate: 0 100%;
+  }
+}
+@keyframes shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-6deg);
+  }
+  65% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* On a narrow phone, each feature's bookplate sits beside its title. */
+@media (max-width: 639px) {
+  .feature {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 16px;
+    align-items: center;
+    padding: 22px;
+  }
+  .feature .plate {
+    width: 68px;
+    height: 68px;
+    margin: 0;
+    padding: 9px;
+  }
+  .feature h3 {
+    margin: 0;
+    font-size: 22px;
+  }
+  .feature p {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+  }
+}

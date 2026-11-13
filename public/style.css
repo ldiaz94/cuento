@@ -908,8 +908,9 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 8px;
+  padding: 10px 5px;
   overflow: hidden;
+  container-type: inline-size; /* the title's size follows the spine's width */
   text-align: center;
   color: #fff8ee;
   background:
@@ -937,9 +938,11 @@ h1 {
   bottom: 12%;
 }
 .spine span {
-  font: 600 12px/1.15 var(--serif);
+  /* Small enough that a long word ("Punishment") fits whole on a phone's
+     spine; breaking inside a word is the last resort. */
+  font: 600 clamp(9px, 16cqi, 12px) / 1.15 var(--serif);
   hyphens: auto;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-variation-settings: 'SOFT' 100;
   display: -webkit-box;
   -webkit-line-clamp: 5;

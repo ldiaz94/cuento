@@ -60,7 +60,7 @@ before(async () => {
         : { totalItems: 0 },
     });
   });
-  await page.goto(origin(server));
+  await page.goto(origin(server) + 'app/');
 });
 after(async () => {
   await browser?.close();
@@ -209,7 +209,7 @@ test('Settings shows the version, and Escape closes it', async () => {
 });
 
 test('a new version waits for Update, which reloads into it', async () => {
-  const worker = new URL('../build/site/sw.js', import.meta.url);
+  const worker = new URL('../build/site/app/sw.js', import.meta.url);
   const before = await readFile(worker, 'utf8');
   await writeFile(worker, before + '\n// a new version\n');
   try {

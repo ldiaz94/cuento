@@ -12,14 +12,18 @@ spark   = /home/luis/r/spark
 sparkv  = v0.1.1
 port    = 8080
 
-# The site, in build/site/; tools/precache.ts last, which writes its
+# The site, in build/site/: the landing page at its root, the app in
+# app/; tools/precache.ts last, which writes the app's
 # service worker with the list of files to keep offline.
 task build:
     rm -rf build/site
     {bin}/tsc -p .
-    cp -R public/. build/site/
-    mkdir -p build/site/spark
-    cp src/spark/*.js src/spark/LICENSE build/site/spark/
+    cp -R public/. build/site/app/
+    cp landing/index.html landing/landing.css build/site/
+    cp -R landing/img build/site/
+    cp tools/retired/sw.js build/site/sw.js
+    mkdir -p build/site/app/spark
+    cp src/spark/*.js src/spark/LICENSE build/site/app/spark/
     node tools/precache.ts
 
 # The tests' types and the Worker's (its types written from wrangler.jsonc),
@@ -28,7 +32,7 @@ task check: build
     {bin}/tsc -p test
     npx wrangler types worker/worker-configuration.d.ts >/dev/null
     {bin}/tsc -p worker
-    node --test test/unit.test.ts test/sync.test.ts test/accounts.test.ts test/review.test.ts test/browser.test.ts test/review-browser.test.ts test/scan.test.ts
+    node --test test/unit.test.ts test/sync.test.ts test/accounts.test.ts test/reminders.test.ts test/review.test.ts test/browser.test.ts test/review-browser.test.ts test/scan.test.ts test/reminders-browser.test.ts
 
 # The sources as Prettier lays them out (spark is spark's own).
 task fmt:
@@ -51,6 +55,11 @@ task shots: build
 # Lines in cuento's own sources.
 task loc:
     wc -l src/*.ts public/*.html public/*.css | sort -n
+
+# Web Push's VAPID key pair, made once: the private half straight into
+# the Worker's secret; the public half printed, for wrangler.jsonc.
+task vapid:
+    node tools/vapid.ts | npx wrangler secret put VAPID_PRIVATE_KEY
 
 # To Cloudflare, once checked.
 task deploy: check fmt

@@ -77,7 +77,7 @@ function barcodeSvg(digits: string): string {
 }
 
 /** The built scanner's address on the page (passed in, so tsc leaves it be). */
-const SCANNER = '/scan.js';
+const SCANNER = '/app/scan.js';
 /** The scanner's module, as the page imports it. */
 type Scanner = typeof import('../src/scan.ts');
 
@@ -129,7 +129,7 @@ async function scanPage() {
   await page.route('**/blank.html', route =>
     route.fulfill({ contentType: 'text/html', body: '<video id="v"></video>' }),
   );
-  await page.goto(origin(server) + 'blank.html');
+  await page.goto(origin(server) + 'app/blank.html');
   await page.evaluate(() => delete (window as { BarcodeDetector?: unknown }).BarcodeDetector);
   return page;
 }

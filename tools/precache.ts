@@ -1,8 +1,8 @@
-/* Writes build/site/sw.js from public/sw.js (robbie build): fills in the
+/* Writes build/site/app/sw.js from public/sw.js (robbie build): fills in the
  * list of files the service worker keeps for offline use, and a version
  * that is a hash of those files, so a deploy that changes anything gets a
  * new cache; and version.json, that version and the day, for the page to
- * show. Run after build/site/ is complete: node tools/precache.ts.
+ * show. Run after build/site/app/ is complete: node tools/precache.ts.
  * Depends on Node alone. Leaves out the page's own URL ("./"): the worker
  * adds it. */
 import { createHash } from 'node:crypto';
@@ -10,7 +10,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 /** The built site. */
-const SITE = new URL('../build/site/', import.meta.url).pathname;
+const SITE = new URL('../build/site/app/', import.meta.url).pathname;
 /** The line in public/sw.js this script fills in. */
 const MARKER = /^const BUILD = .*$/m;
 

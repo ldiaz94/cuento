@@ -53,7 +53,7 @@ before(async () => {
     route.fulfill({ path: new URL('fixtures/review.html', import.meta.url).pathname }),
   );
   await page.addInitScript(books => Object.assign(window, { YEAR: 2026, BOOKS: books }), BOOKS);
-  await page.goto(origin(server) + 'review.html');
+  await page.goto(origin(server) + 'app/review.html');
 });
 after(async () => {
   await browser?.close();

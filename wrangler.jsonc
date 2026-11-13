@@ -6,17 +6,25 @@
   "name": "cuento",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
+  // cuento.page, and the old workers.dev address, which offers to move.
+  "routes": [
+    { "pattern": "cuento.page", "custom_domain": true },
+    { "pattern": "www.cuento.page", "custom_domain": true },
+  ],
+  "workers_dev": true,
   "assets": {
     "directory": "./build/site",
     "binding": "ASSETS",
     // Only the API reaches the Worker first; every other path is a file.
-    "run_worker_first": ["/api/*"],
+    "run_worker_first": true,
   },
   "durable_objects": {
     "bindings": [
       { "name": "SHELF", "class_name": "Shelf" },
       // One object for every account (worker/auth.ts).
       { "name": "ACCOUNTS", "class_name": "Accounts" },
+      // One object for every reminder (worker/notify.ts).
+      { "name": "REMINDERS", "class_name": "Reminders" },
     ],
   },
   // Each class keeps its data in SQLite: declared once, never renamed.
@@ -24,5 +32,14 @@
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Shelf"] },
     { "tag": "v2", "new_sqlite_classes": ["Accounts"] },
+    { "tag": "v3", "new_sqlite_classes": ["Reminders"] },
   ],
+  // Reminders go out on the quarter hour (worker/notify.ts).
+  "triggers": { "crons": ["*/15 * * * *"] },
+  // Web Push's VAPID key: the public half here, the private half a secret
+  // (robbie vapid makes the pair and stores it: VAPID_PRIVATE_KEY).
+  "vars": {
+    "VAPID_PUBLIC_KEY": "",
+    "VAPID_SUBJECT": "https://cuento.page",
+  },
 }

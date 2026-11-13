@@ -26,9 +26,10 @@ import type { Hit } from './lookup.ts';
 import { scan, canScan, ScanError } from './scan.ts';
 import type { Reason } from './scan.ts';
 import * as updates from './updates.ts';
-import { startSync, code } from './sync.ts';
+import { startSync, code, enable } from './sync.ts';
 import { syncSection } from './syncView.ts';
 import { accountSection } from './accountView.ts';
+import { remindersSection } from './remindersView.ts';
 import { review } from './review.ts';
 import { tilde, cloth } from './tilde.ts';
 import type { Found, Version } from './updates.ts';
@@ -632,7 +633,7 @@ function settings() {
         </p>
         ${backup()}
       </section>
-      ${accountSection()} ${syncSection()}
+      ${accountSection()} ${syncSection()} ${remindersSection()}
       <section>
         <h3>Goal</h3>
         <label class="goal-field"
@@ -673,6 +674,27 @@ function settings() {
         </p>
       </section>
     </div>
+  </div>`;
+}
+
+/** Where cuento lives now. */
+const HOME = 'cuento.page';
+
+/** On cuento's old address, a bar offering to take the shelf to the new
+ * one: sync carries it (turned on here first if it is off). */
+function movedBar() {
+  if (!location.hostname.endsWith('.workers.dev')) return null;
+  const move = async () => {
+    try {
+      if (!code()) await enable();
+      location.href = 'https://' + HOME + '/app/#sync=' + code();
+    } catch {
+      alert('Couldn’t reach cuento to move your shelf: are you online?');
+    }
+  };
+  return html`<div class="toast moved" role="status">
+    <span>cuento now lives at ${HOME}.</span>
+    <button @click=${move}>Take my shelf there</button>
   </div>`;
 }
 
@@ -787,7 +809,7 @@ mount(
   document.getElementById('app') as HTMLElement,
   html`<div class="layout">
     <aside class="side">${hero()} ${addBar()} ${toolbar()} ${saveWarning}</aside>
-    ${scanner} ${settings} ${updateBar}
+    ${scanner} ${settings} ${updateBar} ${movedBar()}
     ${
       () =>
         reviewing()

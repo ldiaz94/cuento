@@ -1,0 +1,688 @@
+<!doctype html>
+<!-- cuento's landing page, at the site's root: what cuento is, a look at
+     it, its year in review, and how to install it. The app itself lives
+     at /app/ and lends this page its fonts and icons. Static: no script.
+     The pictures of the app come from landing/shots.ts, the sharing
+     picture from landing/og.ts. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>cuento: count the books you read</title>
+    <meta
+      name="description"
+      content="cuento keeps the books you read. Scan a barcode, keep your shelf on your phone, set a reading goal and see your year in books. Free, private, works offline."
+    />
+    <link rel="canonical" href="https://cuento.page/" />
+    <meta name="theme-color" content="#f7f2e8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/app/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/app/apple-touch-icon.png" />
+    <link
+      rel="preload"
+      href="/app/fonts/fraunces-latin-full-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="cuento" />
+    <meta property="og:url" content="https://cuento.page/" />
+    <meta property="og:title" content="cuento: count the books you read" />
+    <meta
+      property="og:description"
+      content="Scan a book, keep your shelf, and see your year in books. Free, private, works offline."
+    />
+    <meta property="og:image" content="https://cuento.page/img/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Tilde the bookworm on a red book, beside the word cuento and a shelf of cloth-bound spines"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="cuento: count the books you read" />
+    <meta
+      name="twitter:description"
+      content="Scan a book, keep your shelf, and see your year in books. Free, private, works offline."
+    />
+    <meta name="twitter:image" content="https://cuento.page/img/og.png" />
+    <link rel="stylesheet" href="/landing.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to the content</a>
+
+    <header class="bar">
+      <a class="mark" href="/" aria-label="cuento, home">
+        <svg viewBox="0 0 256 256" width="34" height="34" aria-hidden="true">
+          <use href="#tilde" />
+        </svg>
+        <span>cuento</span>
+      </a>
+      <nav aria-label="Main">
+        <a href="#features">What it does</a>
+        <a href="#review">Year in review</a>
+        <a href="#install">Install</a>
+        <a class="button small" href="/app/">Open</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="title">
+        <div class="pitch">
+          <svg class="tilde" viewBox="0 0 256 256" width="120" height="120" aria-hidden="true">
+            <path
+              d="M176 190 C176 140 96 156 100 112"
+              fill="none"
+              stroke="#2b2620"
+              stroke-width="44"
+              stroke-linecap="round"
+            />
+            <path
+              d="M176 190 C176 140 96 156 100 112"
+              fill="none"
+              stroke="#7fb069"
+              stroke-width="34"
+              stroke-linecap="round"
+            />
+            <path
+              d="M150 150 C150 138 128 140 126 134"
+              fill="none"
+              stroke="#5a8a4a"
+              stroke-width="6"
+              stroke-linecap="round"
+            />
+            <g class="head">
+              <g transform="rotate(28 150 70)">
+                <rect
+                  x="144"
+                  y="18"
+                  width="12"
+                  height="62"
+                  rx="2"
+                  fill="#d9a21b"
+                  stroke="#2b2620"
+                  stroke-width="4"
+                />
+                <path
+                  d="M144 18 L150 4 L156 18 Z"
+                  fill="#f6f1e7"
+                  stroke="#2b2620"
+                  stroke-width="4"
+                  stroke-linejoin="round"
+                />
+                <rect
+                  x="144"
+                  y="70"
+                  width="12"
+                  height="10"
+                  fill="#b5532c"
+                  stroke="#2b2620"
+                  stroke-width="4"
+                />
+              </g>
+              <circle cx="104" cy="88" r="42" fill="#7fb069" stroke="#2b2620" stroke-width="6" />
+              <circle cx="141" cy="88" r="9" fill="#5a8a4a" stroke="#2b2620" stroke-width="4" />
+              <circle cx="88" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5" />
+              <circle cx="120" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5" />
+              <path d="M102 85 H106" stroke="#2b2620" stroke-width="5" />
+              <g class="eyes">
+                <circle cx="90" cy="88" r="4.5" fill="#2b2620" />
+                <circle cx="122" cy="88" r="4.5" fill="#2b2620" />
+              </g>
+              <path
+                d="M90 108 Q104 120 118 108"
+                fill="none"
+                stroke="#2b2620"
+                stroke-width="5"
+                stroke-linecap="round"
+              />
+            </g>
+            <rect
+              x="44"
+              y="176"
+              width="168"
+              height="56"
+              rx="8"
+              fill="#b5532c"
+              stroke="#2b2620"
+              stroke-width="6"
+            />
+            <path d="M72 176 V232 M184 176 V232" stroke="#d9a21b" stroke-width="6" />
+            <rect
+              x="92"
+              y="192"
+              width="80"
+              height="24"
+              rx="3"
+              fill="#fffdf8"
+              stroke="#2b2620"
+              stroke-width="4"
+            />
+            <path d="M102 204 H162" stroke="#7a7064" stroke-width="4" stroke-linecap="round" />
+          </svg>
+          <p class="kicker">
+            <i lang="es">un cuento</i>, a story &middot; <i lang="es">cuento</i>, I count
+          </p>
+          <h1 id="title">cuento</h1>
+          <p class="lede">Count the books you read. <span>Keep the story.</span></p>
+          <p class="sub">
+            A small, warm reading log for your phone. Scan a book, put it on your shelf, and at the
+            end of the year, see your year in books. No account, no ads.
+          </p>
+          <p class="actions">
+            <a class="button primary" href="/app/">Open cuento</a>
+            <a class="button" href="#install">How to install</a>
+          </p>
+        </div>
+
+        <div class="stage">
+          <img
+            class="behind"
+            src="/img/review-opening.webp"
+            width="468"
+            height="1013"
+            alt=""
+            fetchpriority="low"
+          />
+          <figure class="phone">
+            <picture>
+              <source srcset="/img/shelf-dark.webp" media="(prefers-color-scheme: dark)" />
+              <img
+                src="/img/shelf-light.webp"
+                width="780"
+                height="1688"
+                alt="cuento on a phone: 17 of 24 books read in 2026, a button for the year in books, and a shelf of cloth-bound books, each marked want, reading or read"
+                fetchpriority="high"
+              />
+            </picture>
+          </figure>
+        </div>
+      </section>
+
+      <div class="shelf" aria-hidden="true">
+        <i style="--c: #7d2f2b; --h: 78%"></i><i style="--c: #26476e; --h: 92%"></i
+        ><i style="--c: #a27b2c; --h: 70%"></i><i style="--c: #2f5e4a; --h: 86%"></i
+        ><i style="--c: #5d3b66; --h: 96%"></i><i style="--c: #1f6164; --h: 74%"></i
+        ><i style="--c: #9b4b25; --h: 88%"></i><i style="--c: #4b5762; --h: 80%"></i
+        ><i style="--c: #26476e; --h: 72%"></i><i style="--c: #7d2f2b; --h: 94%"></i
+        ><i style="--c: #2f5e4a; --h: 76%"></i><i style="--c: #a27b2c; --h: 90%"></i
+        ><i style="--c: #1f6164; --h: 84%"></i><i style="--c: #5d3b66; --h: 70%"></i
+        ><i style="--c: #9b4b25; --h: 92%"></i><i style="--c: #4b5762; --h: 78%"></i
+        ><i style="--c: #7d2f2b; --h: 86%"></i><i style="--c: #26476e; --h: 74%"></i
+        ><i style="--c: #a27b2c; --h: 96%"></i><i style="--c: #2f5e4a; --h: 82%"></i
+        ><i style="--c: #5d3b66; --h: 88%"></i><i style="--c: #1f6164; --h: 72%"></i
+        ><i style="--c: #9b4b25; --h: 80%"></i><i style="--c: #4b5762; --h: 94%"></i
+        ><i style="--c: #26476e; --h: 84%"></i><i style="--c: #a27b2c; --h: 76%"></i
+        ><i style="--c: #7d2f2b; --h: 90%"></i><i style="--c: #1f6164; --h: 82%"></i
+        ><i style="--c: #5d3b66; --h: 74%"></i><i style="--c: #2f5e4a; --h: 94%"></i
+        ><i style="--c: #9b4b25; --h: 70%"></i><i style="--c: #4b5762; --h: 86%"></i>
+      </div>
+
+      <section class="name" aria-labelledby="name-title">
+        <h2 id="name-title" class="hidden">The name</h2>
+        <p class="big">
+          In Spanish, <i lang="es">un cuento</i> is a story, and <i lang="es">cuento</i> is also
+          &ldquo;I count&rdquo;. Every book you read is a little of both.
+        </p>
+        <p>
+          The bookworm is <b>Tilde</b>, named after the curl over the &ntilde;, which her body makes
+          too. She wears round glasses and keeps a pencil behind her ear, for keeping count.
+        </p>
+      </section>
+
+      <section id="features" class="features" aria-labelledby="features-title">
+        <h2 id="features-title" class="section-title">A shelf in your pocket</h2>
+        <ul class="grid">
+          <li class="feature" style="--i: 0">
+            <svg class="plate" viewBox="0 0 64 64" aria-hidden="true">
+              <rect x="12" y="18" width="40" height="28" rx="3" fill="#fffdf8" />
+              <path
+                d="M18 23v18M21.5 23v18M24 23v18M28.5 23v18M32 23v18M35 23v18M39.5 23v18M42 23v18M46 23v18"
+                stroke="#2b2620"
+                stroke-width="2"
+              />
+              <path
+                d="M8 22v-6a4 4 0 0 1 4-4h8M44 12h8a4 4 0 0 1 4 4v6M56 42v6a4 4 0 0 1-4 4h-8M20 52h-8a4 4 0 0 1-4-4v-6"
+                fill="none"
+                stroke="#2b2620"
+                stroke-width="3.5"
+                stroke-linecap="round"
+              />
+              <path d="M5 32h54" stroke="#b5532c" stroke-width="3" stroke-linecap="round" />
+            </svg>
+            <h3>Scan, type or search</h3>
+            <p>
+              Point the camera at the barcode on the back, type the ISBN, or search by title or
+              author. cuento fills in the title, the author and the cover.
+            </p>
+          </li>
+          <li class="feature" style="--i: 1">
+            <svg class="plate" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M12 8h30a4 4 0 0 1 4 4v44H16a4 4 0 0 1-4-4z"
+                fill="#26476e"
+                stroke="#2b2620"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path d="M12 52a4 4 0 0 1 4-4h30" fill="none" stroke="#2b2620" stroke-width="3" />
+              <path d="M17 14h24M17 42h24" stroke="#d9a21b" stroke-width="2" />
+              <path
+                d="M32 6v18l4-3 4 3V6"
+                fill="#b5532c"
+                stroke="#2b2620"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M48 30l3 6 6.6 1-4.8 4.6 1.1 6.6-5.9-3.1-5.9 3.1 1.1-6.6-4.8-4.6 6.6-1z"
+                fill="#d9a21b"
+                stroke="#2b2620"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <h3>Want to read, reading, read</h3>
+            <p>
+              Each book has a status, and the dates follow: starting a book dates it, finishing
+              dates it. Give it stars, and keep a note of what stayed with you.
+            </p>
+          </li>
+          <li class="feature" style="--i: 2">
+            <svg class="plate" viewBox="0 0 64 64" aria-hidden="true">
+              <rect x="20" y="5" width="26" height="54" rx="6" fill="#2b2620" />
+              <rect x="23" y="11" width="20" height="40" rx="2" fill="#f7f2e8" />
+              <rect x="25" y="20" width="4.5" height="13" rx="1" fill="#7d2f2b" />
+              <rect x="30.5" y="22" width="4" height="11" rx="1" fill="#2f5e4a" />
+              <rect x="35.5" y="18" width="5" height="15" rx="1" fill="#a27b2c" />
+              <path d="M24 33.5h18" stroke="#2b2620" stroke-width="1.5" />
+              <path
+                d="M27 40h12M27 44h8"
+                stroke="#c9bda9"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M6 22a14 14 0 0 1 10-4M8 28a8 8 0 0 1 6-3"
+                fill="none"
+                stroke="#c9bda9"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+              <path d="M5 16l12 14" stroke="#b5532c" stroke-width="3" stroke-linecap="round" />
+              <path
+                d="M52 30v14M46 38l6 6 6-6"
+                fill="none"
+                stroke="#b5532c"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <h3>Works offline, installs like an app</h3>
+            <p>
+              Once it has loaded, cuento opens with no network at all. Add it to your home screen
+              and it opens like any other app. Only looking up a new book needs a connection.
+            </p>
+          </li>
+          <li class="feature" style="--i: 3">
+            <svg class="plate" viewBox="0 0 64 64" aria-hidden="true">
+              <circle cx="32" cy="32" r="22" fill="none" stroke="#efe2cf" stroke-width="8" />
+              <path
+                d="M32 10a22 22 0 1 1-20.9 28.8"
+                fill="none"
+                stroke="#b5532c"
+                stroke-width="8"
+              />
+              <circle cx="32" cy="32" r="26.5" fill="none" stroke="#2b2620" stroke-width="2.5" />
+              <circle cx="32" cy="32" r="17.5" fill="#fffdf8" stroke="#2b2620" stroke-width="2.5" />
+              <text
+                x="32"
+                y="39"
+                text-anchor="middle"
+                font-family="Fraunces, Georgia, serif"
+                font-weight="700"
+                font-size="19"
+                fill="#2b2620"
+              >
+                17
+              </text>
+            </svg>
+            <h3>A goal, and every year kept</h3>
+            <p>
+              Say how many books you mean to read this year and watch the count climb. History keeps
+              each year&rsquo;s books, so last year is a tap away.
+            </p>
+          </li>
+          <li class="feature" style="--i: 4">
+            <svg class="plate" viewBox="0 0 64 64" aria-hidden="true">
+              <rect
+                x="5"
+                y="16"
+                width="22"
+                height="36"
+                rx="5"
+                fill="#fffdf8"
+                stroke="#2b2620"
+                stroke-width="3"
+              />
+              <rect
+                x="37"
+                y="16"
+                width="22"
+                height="36"
+                rx="5"
+                fill="#fffdf8"
+                stroke="#2b2620"
+                stroke-width="3"
+              />
+              <path d="M10 23h5v5h-5zM18 23h4v4h-4zM10 31h4v4h-4zM17 32h5v3h-5z" fill="#2b2620" />
+              <path d="M42 23h5v5h-5zM50 23h4v4h-4zM42 31h4v4h-4zM49 32h5v3h-5z" fill="#2b2620" />
+              <path
+                d="M22 9c6-5 14-5 20 0M42 59c-6 5-14 5-20 0"
+                fill="none"
+                stroke="#b5532c"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+              <path
+                d="M37 5l5 4-6 2M27 63l-5-4 6-2"
+                fill="none"
+                stroke="#b5532c"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="16" cy="44" r="3.5" fill="#d9a21b" stroke="#2b2620" stroke-width="2" />
+              <circle cx="48" cy="44" r="3.5" fill="#d9a21b" stroke="#2b2620" stroke-width="2" />
+            </svg>
+            <h3>Sync your devices</h3>
+            <p>
+              Turn on sync and open its link or QR code on your other phone or laptop. Or make a
+              passkey and sign in anywhere with it. No email, no password.
+            </p>
+          </li>
+          <li class="feature" style="--i: 5">
+            <svg class="plate" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M7 30L32 9l25 21v24H7z"
+                fill="#f6e2d6"
+                stroke="#2b2620"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <rect
+                x="13"
+                y="34"
+                width="5"
+                height="17"
+                fill="#26476e"
+                stroke="#2b2620"
+                stroke-width="2"
+              />
+              <rect
+                x="18"
+                y="30"
+                width="5"
+                height="21"
+                fill="#7d2f2b"
+                stroke="#2b2620"
+                stroke-width="2"
+              />
+              <rect
+                x="23"
+                y="36"
+                width="5"
+                height="15"
+                fill="#2f5e4a"
+                stroke="#2b2620"
+                stroke-width="2"
+              />
+              <rect
+                x="28"
+                y="32"
+                width="5"
+                height="19"
+                fill="#a27b2c"
+                stroke="#2b2620"
+                stroke-width="2"
+              />
+              <rect
+                x="39"
+                y="37"
+                width="15"
+                height="12"
+                rx="2"
+                fill="#d9a21b"
+                stroke="#2b2620"
+                stroke-width="2.5"
+              />
+              <path
+                d="M42 37v-4a4.5 4.5 0 0 1 9 0v4"
+                fill="none"
+                stroke="#2b2620"
+                stroke-width="2.5"
+              />
+              <circle cx="46.5" cy="43" r="1.6" fill="#2b2620" />
+            </svg>
+            <h3>Your shelf stays with you</h3>
+            <p>
+              Your books live on your device, in your browser. Nothing leaves it unless you turn
+              sync on. Export the whole shelf as a file whenever you like.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section id="review" class="review" aria-labelledby="review-title">
+        <div class="review-head">
+          <p class="kicker">Every December</p>
+          <h2 id="review-title"><span class="foil">Your year in books</span></h2>
+          <p>
+            When the year ends, cuento binds your reading into a little story, card by card: how
+            many you finished, your best month, the ones you loved, your records and your pace.
+            Bound in cloth, stamped in gold, and yours to share.
+          </p>
+        </div>
+        <ol class="cards">
+          <li style="--i: 0; --r: -4deg">
+            <img
+              src="/img/review-opening.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="The opening card: a red cloth cover, stamped in gold: Your 2026 in books"
+            />
+          </li>
+          <li style="--i: 1; --r: 2.5deg">
+            <img
+              src="/img/review-count.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="In 2026 you finished 17 books, 6,119 pages: a pile 49 cm tall, taller than a cat sitting up"
+            />
+          </li>
+          <li style="--i: 2; --r: -2deg">
+            <img
+              src="/img/review-months.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="Month by month: a bookcase with a shelf for each month; July was your month"
+            />
+          </li>
+          <li style="--i: 3; --r: 3deg">
+            <img
+              src="/img/review-favourites.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="Favourites, in gold on blue cloth: a fan of five books and their stars"
+            />
+          </li>
+          <li style="--i: 4; --r: -3deg">
+            <img
+              src="/img/review-records.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="Records, on library catalogue cards: the longest book, the quickest, and the authors read most"
+            />
+          </li>
+          <li style="--i: 5; --r: 2deg">
+            <img
+              src="/img/review-pace.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="Your pace, on green cloth: a book every 20 days, each one a gold bead on a thread"
+            />
+          </li>
+          <li style="--i: 6; --r: -2.5deg">
+            <img
+              src="/img/review-closing.webp"
+              width="468"
+              height="1013"
+              loading="lazy"
+              alt="The closing card: a gold seal for 2026 with Tilde beside it, Here's to 2027, and a button to share your year"
+            />
+          </li>
+        </ol>
+      </section>
+
+      <section id="install" class="install" aria-labelledby="install-title">
+        <h2 id="install-title" class="section-title">Put it on your home screen</h2>
+        <p class="intro">cuento is a web app: no store, nothing to download. Open it, then:</p>
+        <ol class="ways">
+          <li class="way" style="--i: 0">
+            <h3>iPhone and iPad</h3>
+            <ol>
+              <li>Open <a href="/app/">cuento</a> in <b>Safari</b>.</li>
+              <li>Tap <b>Share</b>, the square with the arrow.</li>
+              <li>Choose <b>Add to Home Screen</b>.</li>
+            </ol>
+          </li>
+          <li class="way" style="--i: 1">
+            <h3>Android</h3>
+            <ol>
+              <li>Open <a href="/app/">cuento</a> in <b>Chrome</b>.</li>
+              <li>Tap the <b>menu</b>, the three dots.</li>
+              <li>Choose <b>Install app</b>.</li>
+            </ol>
+          </li>
+          <li class="way" style="--i: 2">
+            <h3>A computer</h3>
+            <ol>
+              <li>Open <a href="/app/">cuento</a> in <b>Chrome</b> or <b>Edge</b>.</li>
+              <li>Click the <b>install</b> icon at the right of the address bar.</li>
+              <li>Choose <b>Install</b>.</li>
+            </ol>
+          </li>
+        </ol>
+        <p class="note">
+          On an iPhone, Safari may clear a site&rsquo;s data after a few weeks unused; an app on the
+          home screen is spared. Either way, <b>Export</b> in Settings keeps a copy.
+        </p>
+      </section>
+
+      <section class="open" aria-labelledby="open-title">
+        <h2 id="open-title">Free, and open</h2>
+        <p>
+          cuento is free, with no ads and no tracking. Its source is on GitHub under the ISC
+          licence: read it, run your own, or send a fix. It is also the first real app built on
+          <a href="https://github.com/ldiaz94/spark">spark</a>, a tiny reactive UI library.
+        </p>
+        <p class="actions">
+          <a class="button primary" href="/app/">Open cuento</a>
+          <a class="button" href="https://github.com/ldiaz94/cuento">Source on GitHub</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <svg viewBox="0 0 256 256" width="44" height="44" aria-hidden="true">
+        <use href="#tilde" />
+      </svg>
+      <p>
+        <b>cuento</b> &middot; Made with
+        <a href="https://github.com/ldiaz94/spark">spark</a> &middot;
+        <a href="https://github.com/ldiaz94/cuento">Source</a> &middot; ISC licence
+      </p>
+    </footer>
+
+    <!-- Tilde, still, for the bar and the footer. -->
+    <svg width="0" height="0" class="defs" aria-hidden="true">
+      <symbol id="tilde" viewBox="0 0 256 256">
+        <path
+          d="M176 190 C176 140 96 156 100 112"
+          fill="none"
+          stroke="#2b2620"
+          stroke-width="44"
+          stroke-linecap="round"
+        />
+        <path
+          d="M176 190 C176 140 96 156 100 112"
+          fill="none"
+          stroke="#7fb069"
+          stroke-width="34"
+          stroke-linecap="round"
+        />
+        <g transform="rotate(28 150 70)">
+          <rect
+            x="144"
+            y="18"
+            width="12"
+            height="62"
+            rx="2"
+            fill="#d9a21b"
+            stroke="#2b2620"
+            stroke-width="4"
+          />
+          <path
+            d="M144 18 L150 4 L156 18 Z"
+            fill="#f6f1e7"
+            stroke="#2b2620"
+            stroke-width="4"
+            stroke-linejoin="round"
+          />
+        </g>
+        <circle cx="104" cy="88" r="42" fill="#7fb069" stroke="#2b2620" stroke-width="6" />
+        <circle cx="88" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5" />
+        <circle cx="120" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5" />
+        <circle cx="90" cy="88" r="4.5" fill="#2b2620" />
+        <circle cx="122" cy="88" r="4.5" fill="#2b2620" />
+        <path
+          d="M90 108 Q104 120 118 108"
+          fill="none"
+          stroke="#2b2620"
+          stroke-width="5"
+          stroke-linecap="round"
+        />
+        <rect
+          x="44"
+          y="176"
+          width="168"
+          height="56"
+          rx="8"
+          fill="#b5532c"
+          stroke="#2b2620"
+          stroke-width="6"
+        />
+        <path d="M72 176 V232 M184 176 V232" stroke="#d9a21b" stroke-width="6" />
+        <rect
+          x="92"
+          y="192"
+          width="80"
+          height="24"
+          rx="3"
+          fill="#fffdf8"
+          stroke="#2b2620"
+          stroke-width="4"
+        />
+      </symbol>
+    </svg>
+  </body>
+</html>

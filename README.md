@@ -30,6 +30,11 @@ found one on its first day, fixed in spark 0.1.1).
 The pictures come from fixed books (`robbie shots`), so they show the app
 as the tests see it.
 
+The site is two parts: a landing page at [cuento.page](https://cuento.page)
+(`landing/`: static HTML and CSS; `node landing/shots.ts` redraws its
+pictures from the built app, `node landing/og.ts` its link preview) and
+the app at `/app/`.
+
 ## Get it
 
 Open the deployed page, or run your own:
@@ -62,6 +67,7 @@ for another.
 | See past years           | **History** under the shelves: a year's books, and **Your year in books**                                    |
 | Sync your devices        | **Settings → Sync**: turn it on, then open its link or QR on the other device                                |
 | Sign in                  | **Settings → Account**: create a passkey; sign in with it anywhere                                           |
+| Be reminded to read      | **Settings → Reminders**: a time and days; on an iPhone, add cuento to the Home Screen first                 |
 | Update cuento            | When a new version is ready a bar says so: tap **Update**. **Settings** shows the version and checks for one |
 
 Your shelf lives in this browser only. cuento opens with no network once
@@ -95,7 +101,7 @@ Five ideas, a module each, read in this order:
    books are a signal; a computed filters and searches them; spark's keyed
    `each()` keeps one row per book, updated in place.
 
-Beyond the page, three more, each a module or two:
+Beyond the page, four more, each a module or two:
 
 - **A year, told as a story** ([src/review.ts](src/review.ts)): pure
   statistics (`yearStats`), then cards drawn in HTML and CSS, and a
@@ -111,6 +117,15 @@ Beyond the page, three more, each a module or two:
   [src/account.ts](src/account.ts)): an account owns one shelf, so
   signing in on a new device joins it. Sessions are signed cookies
   (`SESSION_KEY`, a Worker secret).
+- **Reminders are Web Push** ([worker/notify.ts](worker/notify.ts),
+  [worker/reminders.ts](worker/reminders.ts), [src/reminders.ts](src/reminders.ts)):
+  a browser's push subscription, its time, days and time zone, kept in a
+  Durable Object; a cron every quarter hour sends what is due there,
+  once a local day. The server never learns a book. Messages are
+  encrypted and signed with WebCrypto in [worker/push.ts](worker/push.ts)
+  (RFC 8291 and 8292), as the `web-push` package needs Node. The VAPID
+  key is made once by `robbie vapid`: its private half goes straight into
+  the `VAPID_PRIVATE_KEY` secret, its public half into `wrangler.jsonc`.
 
 To work offline, a small service worker ([public/sw.js](public/sw.js))
 keeps every file of the site, and the covers you have seen, on the
@@ -139,6 +154,11 @@ reload, the page opening with the network cut, and that a book's title never bec
 And the scanner in Chromium with a fake camera filming a drawn barcode
 (`test/scan.test.ts`, needs ffmpeg): zxing reads it, and the camera goes
 off after a read, a stop or a missing camera.
+Reminders (`test/reminders.test.ts`): the encryption against RFC 8291's
+own example, a VAPID token that verifies, and who is due when, across
+time zones and summer time; and their Settings section in Chromium
+(`test/reminders-browser.test.ts`), which asks for permission only on a
+tap and subscribes with the server's key.
 
 ## Left out
 
@@ -148,6 +168,7 @@ off after a read, a stop or a missing camera.
 - **Merging edits to one book**: the latest change to a book wins whole.
 - **Editions and series**: a book is one ISBN.
 - **Goals and History across devices**: goals are kept on each device.
+- **More than one reminder a day**, and retrying a push that failed.
 
 ## Licence
 

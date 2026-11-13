@@ -10,12 +10,15 @@
  * Durable Objects (with SQLite) and WebSocket hibernation.
  *
  * Accounts (passkeys that own a shelf, /api/auth/* and /api/me) are
- * auth.ts's. Leaves out rate limits and deleting a shelf. */
+ * auth.ts's; reminders (Web Push, /api/push/* and the quarter-hour cron)
+ * are notify.ts's. Leaves out rate limits and deleting a shelf. */
 import { DurableObject } from 'cloudflare:workers';
 import { setUp, parse, apply, changedSince } from './store.ts';
 import type { Sql, SyncRequest, Change } from './store.ts';
 import { auth } from './auth.ts';
 export { Accounts } from './auth.ts';
+import { push, sendDue } from './notify.ts';
+export { Reminders } from './notify.ts';
 
 /** A sync code: 26 characters of Crockford's base32, upper case. */
 const ROUTE = /^\/api\/shelf\/([0-9A-HJKMNP-TV-Z]{26})\/(sync|live)$/;
@@ -69,10 +72,18 @@ async function sha256(text: string): Promise<string> {
 
 export default {
   async fetch(request, env): Promise<Response> {
-    const path = new URL(request.url).pathname;
+    const url = new URL(request.url);
+    // www.cuento.page is cuento.page: one address, so passkeys and the
+    // shelf in the browser are always found in the same place.
+    if (url.hostname.startsWith('www.')) {
+      url.hostname = url.hostname.slice(4);
+      return Response.redirect(url.href, 301);
+    }
+    const path = url.pathname;
     if (!path.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (path.startsWith('/api/auth/') || path === '/api/me' || path.startsWith('/api/me/'))
       return auth(request, env, path);
+    if (path.startsWith('/api/push/')) return push(request, env, path);
     const route = ROUTE.exec(path);
     if (!route) return answer(404, 'No such shelf.');
     const [, code, what] = route as unknown as [string, string, string];
@@ -94,5 +105,10 @@ export default {
     }
     if (!sync) return answer(400, 'Not a sync.');
     return Response.json(await shelf.sync(sync), { headers: { 'Cache-Control': 'no-store' } });
+  },
+
+  /** The Cron Trigger, every quarter hour: send the reminders due. */
+  async scheduled(controller, env) {
+    await sendDue(env, controller.scheduledTime);
   },
 } satisfies ExportedHandler<Env>;

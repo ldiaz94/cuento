@@ -27,7 +27,7 @@ const BOOKS = [
 }));
 
 const server = await serve();
-const url = origin(server);
+const url = origin(server) + 'app/';
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM || '/usr/sbin/chromium',
 });

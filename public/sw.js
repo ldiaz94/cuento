@@ -3,7 +3,9 @@
  * JavaScript, written by hand; robbie build (tools/precache.ts) copies it
  * to build/site/sw.js with the BUILD line filled in, so the file list and
  * the version are never kept by hand. Depends on the browser's service
- * worker, Cache and fetch APIs. Leaves out the book lookups and the sync
+ * worker, Cache and fetch APIs. It also shows the reminders the server
+ * pushes (worker/notify.ts), and opens cuento when one is tapped.
+ * Leaves out the book lookups and the sync
  * API, /api/ (always the network: offline, the page says so), the
  * browser's Background Sync, and any limit on the covers kept (a
  * shelf's worth is small). */
@@ -73,3 +75,31 @@ async function cacheFirst(request, name, isPage) {
     throw error;
   }
 }
+
+// Push: a reminder from cuento's server, {title, body, tag, url}, shown as
+// it is. The icon's transparent silhouette also serves as the badge (the
+// small monochrome mark Android puts in the status bar).
+self.addEventListener('push', event => {
+  const notice = event.data ? event.data.json() : {};
+  event.waitUntil(
+    self.registration.showNotification(notice.title || 'cuento', {
+      body: notice.body || '',
+      icon: 'icon-192.png',
+      badge: 'icon-192.png',
+      tag: notice.tag || 'cuento',
+      data: { url: notice.url || '/app/' },
+    }),
+  );
+});
+
+// A notification tapped: back to an open cuento, else open its page.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/app/', location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+      const open = windows.find(w => new URL(w.url).pathname.startsWith('/app/'));
+      return open ? open.focus() : self.clients.openWindow(url);
+    }),
+  );
+});
