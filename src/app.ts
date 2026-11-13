@@ -78,9 +78,6 @@ const [saveFailed, setSaveFailed] = signal(false);
 effect(() => {
   setSaveFailed(!save(books()));
 });
-// And, once sync is on, shared with the reader's other devices.
-startSync(books, setBooks);
-
 // What the shelf shows: a status (or all) and the words searched for.
 const [filter, setFilter] = signal<Filter>('all');
 const [query, setQuery] = signal('');
@@ -130,7 +127,7 @@ const years = computed(() =>
 
 /** Where reading goals are kept. */
 const GOALS = 'cuento.goals';
-/** Reading goals by year (books to finish), kept on this device. */
+/** Reading goals by year (books to finish), kept on this device and synced. */
 const [goals, setGoals] = signal<Record<string, number>>(loadGoals());
 effect(() => {
   try {
@@ -147,6 +144,9 @@ function loadGoals(): Record<string, number> {
     return {};
   }
 }
+// And, once sync is on, books and goals are shared with the reader's
+// other devices.
+startSync(books, setBooks, goals, setGoals);
 /** This year's goal (0: none). */
 const goal = () => goals()[thisYear()] ?? 0;
 

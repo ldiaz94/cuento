@@ -111,8 +111,9 @@ Beyond the page, four more, each a module or two:
   ([worker/index.ts](worker/index.ts)) keeps each shelf in a Durable
   Object with SQLite, found by a hash of its code. Devices send what
   changed since the last sync (a diff against a snapshot, so the page
-  never says what it changed); the latest change to a book wins; a
-  WebSocket tells the others to sync.
+  never says what it changed); the latest change to a book wins, and
+  the reading goals travel with the shelf as one more record, the
+  latest write winning; a WebSocket tells the others to sync.
 - **Accounts are passkeys** ([worker/auth.ts](worker/auth.ts),
   [src/account.ts](src/account.ts)): an account owns one shelf, so
   signing in on a new device joins it. Sessions are signed cookies
@@ -167,7 +168,6 @@ tap and subscribes with the server's key.
 - **A recovery email**: an account is its passkeys; keep two, and export.
 - **Merging edits to one book**: the latest change to a book wins whole.
 - **Editions and series**: a book is one ISBN.
-- **Goals and History across devices**: goals are kept on each device.
 - **More than one reminder a day**, and retrying a push that failed.
 
 ## Licence

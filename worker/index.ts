@@ -1,7 +1,7 @@
 /* cuento's Worker: the API for shelves that sync between devices. Every
  * path but /api/* is a static file (wrangler.jsonc sends only those here).
  *
- *   POST /api/shelf/<code>/sync   {since, changes} ─► {seq, changes}
+ *   POST /api/shelf/<code>/sync   {since, changes, settings?} ─► {seq, changes, settings?}
  *   GET  /api/shelf/<code>/live   a WebSocket that hears "changed"
  *
  * The sync code is the shelf's address and its only secret: each code has
@@ -13,8 +13,8 @@
  * auth.ts's; reminders (Web Push, /api/push/* and the quarter-hour cron)
  * are notify.ts's. Leaves out rate limits and deleting a shelf. */
 import { DurableObject } from 'cloudflare:workers';
-import { setUp, parse, apply, changedSince } from './store.ts';
-import type { Sql, SyncRequest, Change } from './store.ts';
+import { setUp, parse, apply, applySettings, changedSince } from './store.ts';
+import type { Sql, SyncRequest, SyncReply } from './store.ts';
 import { auth } from './auth.ts';
 export { Accounts } from './auth.ts';
 import { push, sendDue } from './notify.ts';
@@ -38,8 +38,12 @@ export class Shelf extends DurableObject<Env> {
 
   /** Keeps a device's changes and answers with what it hasn't seen; when
    * anything changed, tells every listening device. */
-  sync(request: SyncRequest): { seq: number; changes: Change[] } {
-    const kept = this.ctx.storage.transactionSync(() => apply(this.sql, request.changes));
+  sync(request: SyncRequest): SyncReply {
+    const kept = this.ctx.storage.transactionSync(
+      () =>
+        apply(this.sql, request.changes) +
+        (request.settings && applySettings(this.sql, request.settings) ? 1 : 0),
+    );
     if (kept > 0)
       for (const socket of this.ctx.getWebSockets()) {
         try {
