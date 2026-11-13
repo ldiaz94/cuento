@@ -113,9 +113,12 @@ test('reading a book dates it, and a read book can be rated', async () => {
 });
 
 test('filters and search narrow the shelf, and the counts follow', async () => {
+  // A filter's books glide in a frame later (a view transition): wait for them.
   await page.locator('.chip').nth(3).click(); // All, Want to read, Reading, Read
+  await page.waitForFunction(() => document.querySelectorAll('.book').length === 1);
   assert.deepEqual(await titles(), ['Typesetting Mathematics']);
   await page.locator('.chip').nth(0).click();
+  await page.waitForFunction(() => document.querySelectorAll('.book').length === 3);
   await page.fill('[aria-label=Search]', 'family');
   assert.deepEqual(await titles(), ['Family recipes']);
   await page.fill('[aria-label=Search]', 'nothing like it');

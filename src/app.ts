@@ -79,19 +79,69 @@ const readThisYear = computed(
 /** Books being read now. */
 const readingNow = computed(() => books().filter(b => b.status === 'reading').length);
 
+/** Whether the reader asked their system for less motion. */
+const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Makes change, letting the books glide from where they were to where
+ * they land (a view transition, where the browser has them). */
+function glide(change: () => void) {
+  if (!document.startViewTransition || still()) return change();
+  document.startViewTransition(change);
+}
+
+/** Cheers a book just read: its cover jumps, and sparks fly from from. */
+function cheer(cover: Element | null | undefined, from: Element) {
+  if (still()) return;
+  cover?.animate(
+    [{ transform: 'none' }, { transform: 'rotate(-7deg) scale(1.1)' }, { transform: 'none' }],
+    { duration: 550, easing: 'cubic-bezier(.3,1.6,.5,1)' },
+  );
+  const { left, top, width, height } = from.getBoundingClientRect();
+  for (let i = 0; i < SPARKS; i++) {
+    const spark = document.createElement('span');
+    spark.className = 'spark';
+    spark.style.left = left + width / 2 + 'px';
+    spark.style.top = top + height / 2 + 'px';
+    document.body.append(spark);
+    const angle = (i / SPARKS) * 2 * Math.PI + Math.random() * 0.5;
+    const far = 36 + Math.random() * 30;
+    const to = `translate(${Math.cos(angle) * far}px, ${Math.sin(angle) * far}px) scale(0.3)`;
+    spark
+      .animate(
+        [
+          { transform: 'scale(1)', opacity: 1 },
+          { transform: to, opacity: 0 },
+        ],
+        {
+          duration: 600 + Math.random() * 250,
+          easing: 'cubic-bezier(.15,.7,.3,1)',
+        },
+      )
+      .finished.then(() => spark.remove());
+  }
+}
+/** How many sparks a cheer throws. */
+const SPARKS = 12;
+
 /** Changes the book with isbn by change(book) -> book. */
 function update(isbn: string, change: (book: Book) => Book) {
   setBooks(bs => bs.map(b => (b.isbn === isbn ? change(b) : b)));
 }
 /** Puts book first on the shelf and shows it. */
 function shelve(book: Book) {
+  // The field clears at once, ready for the next ISBN; the shelf glides a
+  // frame later (a view transition runs its change then).
   batch(() => {
-    setBooks(bs => [book, ...bs]);
     setTyped('');
     setAdding(null);
-    setFilter('all');
-    setQuery('');
   });
+  glide(() =>
+    batch(() => {
+      setBooks(bs => [book, ...bs]);
+      setFilter('all');
+      setQuery('');
+    }),
+  );
 }
 
 /** Looks up the typed ISBN and adds its book, or says why it can't. */
@@ -115,7 +165,7 @@ function addingNote() {
   const a = adding();
   if (!a) return null;
   const isbn = a.isbn || '';
-  if (a.state === 'looking') return html`<p class="note">Looking up ${show(isbn)}…</p>`;
+  if (a.state === 'looking') return html`<p class="note looking">Looking up ${show(isbn)}</p>`;
   if (a.state === 'invalid')
     return html`<p class="note bad">That isn't an ISBN: check the digits.</p>`;
   if (a.state === 'there') return html`<p class="note">That book is on your shelf already.</p>`;
@@ -184,7 +234,7 @@ function toolbar() {
           html`<button
             class=${() => ({ chip: true, on: filter() === f })}
             aria-pressed=${() => String(filter() === f)}
-            @click=${() => setFilter(f)}
+            @click=${() => glide(() => setFilter(f))}
           >
             ${f === 'all' ? 'All' : LABELS[f]} <span class="n">${count(f)}</span>
           </button>`,
@@ -260,10 +310,12 @@ function details(book: BookGetter) {
     /></label>`;
   const remove = () => {
     if (confirm('Take “' + book().title + '” off your shelf?'))
-      batch(() => {
-        setOpen('');
-        setBooks(bs => bs.filter(b => b.isbn !== book().isbn));
-      });
+      glide(() =>
+        batch(() => {
+          setOpen('');
+          setBooks(bs => bs.filter(b => b.isbn !== book().isbn));
+        }),
+      );
   };
   return html`<div class="details">
     <div class="dates">
@@ -287,27 +339,39 @@ function details(book: BookGetter) {
 /** One book on the shelf. */
 function row(book: BookGetter) {
   const isOpen = () => open() === book().isbn;
-  const move = (s: Status) => update(book().isbn, b => withStatus(b, s));
-  return html`<li class=${() => ({ book: true, open: isOpen() })}>
+  const move = (s: Status, e: Event) => {
+    if (s === book().status) return;
+    const button = e.currentTarget as HTMLElement;
+    // It glides only when it leaves the shelf shown: under All it stays put.
+    const change = () => update(book().isbn, b => withStatus(b, s));
+    if (filter() === 'all') change();
+    else glide(change);
+    if (s === 'read') cheer(button.closest('.book')?.querySelector('.cover'), button);
+  };
+  // Its own name in view transitions, so it glides as itself.
+  return html`<li
+    class=${() => ({ book: true, open: isOpen() })}
+    style=${{ 'view-transition-name': 'book-' + book().isbn }}
+  >
     ${cover(book)}
     <div class="body">
       <button
         class="title"
         aria-expanded=${() => String(isOpen())}
-        @click=${() => setOpen(isOpen() ? '' : book().isbn)}
+        @click=${() => glide(() => setOpen(isOpen() ? '' : book().isbn))}
       >
         <strong>${() => book().title}</strong>
         <span class="authors">${() => book().authors.join(', ')}</span>
       </button>
       <div class="status">
-        <div class="seg" role="radiogroup" aria-label="Status">
+        <div class="seg" role="radiogroup" aria-label="Status" data-at=${() => book().status}>
           ${STATUSES.map(
             s =>
               html`<button
                 role="radio"
                 data-status=${s}
                 aria-checked=${() => String(book().status === s)}
-                @click=${() => move(s)}
+                @click=${(e: Event) => move(s, e)}
               >
                 ${SHORT[s]}
               </button>`,
@@ -378,7 +442,7 @@ function hero() {
       <h1>cuento</h1>
     </div>
     <p class="count">
-      <span class="big">${readThisYear}</span>
+      ${() => html`<span class="big">${readThisYear()}</span>` /* new each time: it ticks in */}
       <span class="what">${() => (readThisYear() === 1 ? 'book' : 'books')} read in ${year}</span>
     </p>
     <p class="sub">${() => books().length} on the shelf · ${readingNow} reading now</p>
@@ -399,3 +463,6 @@ mount(
     </section>
   </div>`,
 );
+// Books rise in one after another as the page opens; after that, books
+// that come and go glide instead.
+setTimeout(() => document.documentElement.classList.add('settled'), 1500);
