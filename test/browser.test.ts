@@ -8,6 +8,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, type Browser, type Page } from 'playwright-core';
 import type { Server } from 'node:http';
+import { readFile, writeFile } from 'node:fs/promises';
 import { serve, origin } from './serve.ts';
 
 /** What the fake Open Library knows, by ISBN-13. */
@@ -184,4 +185,27 @@ test('words are searched for, and a book found is added with a tap', async () =>
   await page.waitForFunction(() => document.querySelectorAll('.book').length === 4);
   assert.equal((await titles())[0], 'The Hobbit');
   assert.equal(await page.$('.hits'), null);
+});
+
+test('Settings shows the version, and Escape closes it', async () => {
+  await page.click('.gear');
+  assert.match(await text('.facts dd'), /^[0-9a-f]{12}$/);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.settings', { state: 'detached' });
+});
+
+test('a new version waits for Update, which reloads into it', async () => {
+  const worker = new URL('../build/site/sw.js', import.meta.url);
+  const before = await readFile(worker, 'utf8');
+  await writeFile(worker, before + '\n// a new version\n');
+  try {
+    await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r?.update()));
+    await page.waitForSelector('.toast');
+    await Promise.all([page.waitForEvent('load'), page.click('.toast button')]);
+    await page.waitForSelector('.book');
+    assert.equal(await page.$('.toast'), null);
+    assert.deepEqual(errors, []);
+  } finally {
+    await writeFile(worker, before);
+  }
 });

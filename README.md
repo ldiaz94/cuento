@@ -45,17 +45,18 @@ for another.
 
 ## Learn it
 
-| To                       | Do                                                             |
-| ------------------------ | -------------------------------------------------------------- |
-| Add a book               | Type its ISBN (10 or 13 digits, hyphens or not) and **Add**    |
-| Scan a book              | Tap the barcode button, aim at the back cover's barcode        |
-| Find a book to add       | Type words from its title or author and **Search**; tap one    |
-| Add one no service knows | Add its ISBN, then its title and author by hand                |
-| Start or finish a book   | Change its status: starting dates it, finishing dates it       |
-| Rate a read book         | Tap a star; tap the same star again to clear it                |
-| See its dates and notes  | Tap its title                                                  |
-| Find a book              | Pick a status, or search titles and authors                    |
-| Keep a copy              | **Export** saves the shelf as JSON; **Import** brings one back |
+| To                       | Do                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Add a book               | Type its ISBN (10 or 13 digits, hyphens or not) and **Add**                                                  |
+| Scan a book              | Tap the barcode button, aim at the back cover's barcode                                                      |
+| Find a book to add       | Type words from its title or author and **Search**; tap one                                                  |
+| Add one no service knows | Add its ISBN, then its title and author by hand                                                              |
+| Start or finish a book   | Change its status: starting dates it, finishing dates it                                                     |
+| Rate a read book         | Tap a star; tap the same star again to clear it                                                              |
+| See its dates and notes  | Tap its title                                                                                                |
+| Find a book              | Pick a status, or search titles and authors                                                                  |
+| Keep a copy              | In **Settings** (the gear): **Export** saves the shelf as JSON; **Import** brings one back                   |
+| Update cuento            | When a new version is ready a bar says so: tap **Update**. **Settings** shows the version and checks for one |
 
 Your shelf lives in this browser only. cuento opens with no network once
 it has been loaded; only looking up a new book needs one. To install it,
@@ -91,9 +92,11 @@ Five ideas, a module each, read in this order:
 To work offline, a small service worker ([public/sw.js](public/sw.js))
 keeps every file of the site, and the covers you have seen, on the
 device. `robbie build` fills in its file list and a version (a hash of
-the site) with [tools/precache.ts](tools/precache.ts), so a deploy that
-changes anything is picked up on the next load. Lookups always go to the
-network. The PNG icons in `public/` are kept, redrawn by `robbie icons`
+the site, also written to `version.json`) with
+[tools/precache.ts](tools/precache.ts). A deploy that changes anything
+is fetched in the background and waits: the page offers **Update**
+([src/updates.ts](src/updates.ts)), so nothing changes under the reader.
+Lookups always go to the network. The PNG icons in `public/` are kept, redrawn by `robbie icons`
 (needs `rsvg-convert`).
 
 cuento is TypeScript, strict. `robbie build` compiles `src/` into

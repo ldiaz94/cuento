@@ -14,14 +14,16 @@ const SHELL = 'shell-' + BUILD.version;
 /** The cache for book covers, kept across versions. */
 const COVERS = 'covers';
 
-// Install: keep every file of this version, and do not wait for old pages.
+// Install: keep every file of this version. A new version then waits
+// until the reader says Update (src/updates.ts), so a page never changes
+// under them.
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches
-      .open(SHELL)
-      .then(cache => cache.addAll(['./', ...BUILD.files]))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(caches.open(SHELL).then(cache => cache.addAll(['./', ...BUILD.files])));
+});
+
+// The page's Update button: stop waiting and take over.
+self.addEventListener('message', event => {
+  if (event.data === 'update') self.skipWaiting();
 });
 
 // Activate: delete the caches of older versions, and take over open pages.

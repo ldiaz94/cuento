@@ -15,6 +15,8 @@ import { lookup, search } from './lookup.ts';
 import type { Hit } from './lookup.ts';
 import { scan, canScan, ScanError } from './scan.ts';
 import type { Reason } from './scan.ts';
+import * as updates from './updates.ts';
+import type { Found, Version } from './updates.ts';
 import {
   STATUSES,
   MAX_RATING,
@@ -580,19 +582,104 @@ function backup() {
       alert(err instanceof Error ? err.message : String(err));
     }
   };
-  return html`<footer>
-    ${() =>
-      saveFailed()
-        ? html`<p class="note bad">This browser isn't keeping your shelf: export it.</p>`
-        : null}
+  return html`<div class="backup">
     <button @click=${download}>Export</button>
     <label class="button"
       >Import<input type="file" accept="application/json,.json" hidden @change=${restore}
     /></label>
-    <p class="hint">
-      Your shelf lives in this browser only. Export it now and then to keep a copy.
-    </p>
-  </footer>`;
+  </div>`;
+}
+
+/** A warning when this browser won't keep the shelf. */
+function saveWarning() {
+  return saveFailed()
+    ? html`<p class="note bad">This browser isn't keeping your shelf: export it in Settings.</p>`
+    : null;
+}
+
+// Settings: whether the sheet is open, and what looking for updates found.
+const [settingsOpen, setSettingsOpen] = signal(false);
+const [looked, setLooked] = signal<Found | 'looking' | ''>('');
+
+/** Whether cuento runs installed, from the Home Screen or as an app. */
+const installed = () =>
+  matchMedia('(display-mode: standalone)').matches ||
+  (navigator as { standalone?: boolean }).standalone === true;
+
+/** The settings sheet: the shelf's backup, the app's version and
+ * updates, and where cuento comes from. */
+function settings() {
+  if (!settingsOpen()) return null;
+  const close = () => setSettingsOpen(false);
+  const escape = (e: KeyboardEvent) => e.key === 'Escape' && close();
+  document.addEventListener('keydown', escape);
+  onCleanup(() => document.removeEventListener('keydown', escape));
+  const [version, setVersion] = signal<Version | null>(null);
+  updates.current().then(setVersion);
+  setLooked('');
+  const look = async () => {
+    setLooked('looking');
+    setLooked(await updates.check());
+  };
+  const status = () => {
+    if (updates.newer())
+      return html`<p class="note">
+        A new version is ready. <button type="button" @click=${updates.update}>Update</button>
+      </p>`;
+    const l = looked();
+    if (l === 'looking') return html`<p class="note looking">Looking for a new version</p>`;
+    if (l === 'latest') return html`<p class="note">You have the latest version.</p>`;
+    if (l === 'unknown') return html`<p class="note bad">Couldn't look: are you online?</p>`;
+    return null;
+  };
+  return html`<div class="sheet" @click=${(e: Event) => e.target === e.currentTarget && close()}>
+    <div class="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <header>
+        <h2 id="settings-title">Settings</h2>
+        <button class="done" @click=${close}>Done</button>
+      </header>
+      <section>
+        <h3>Your shelf</h3>
+        <p class="hint">
+          ${() => books().length} ${() => (books().length === 1 ? 'book' : 'books')}, kept in this
+          browser only. Export now and then to keep a copy; import one to bring it back.
+        </p>
+        ${backup()}
+      </section>
+      <section>
+        <h3>App</h3>
+        <dl class="facts">
+          <dt>Version</dt>
+          <dd>${() => version()?.version ?? 'unknown'}</dd>
+          <dt>Built</dt>
+          <dd>${() => version()?.built ?? 'unknown'}</dd>
+          <dt>Installed</dt>
+          <dd>${installed() ? 'Yes' : 'No: Add to Home Screen to install it'}</dd>
+        </dl>
+        <button @click=${look} .disabled=${() => looked() === 'looking'}>Check for updates</button>
+        ${status}
+      </section>
+      <section>
+        <h3>About</h3>
+        <p class="hint">
+          cuento is free software (ISC), built on spark.
+          <a href="https://github.com/ldiaz94/cuento" target="_blank" rel="noopener"
+            >Source on GitHub</a
+          >
+        </p>
+      </section>
+    </div>
+  </div>`;
+}
+
+/** The bar that says a new version is ready, with Update. */
+function updateBar() {
+  return updates.newer() && !settingsOpen()
+    ? html`<div class="toast" role="status">
+        <span>A new version of cuento is ready.</span>
+        <button @click=${updates.update}>Update</button>
+      </div>`
+    : null;
 }
 
 /** The top: Tilde, the name, and what cuento counts. */
@@ -602,6 +689,14 @@ function hero() {
     <div class="brand">
       <img src="icon.svg" alt="" width="44" height="44" />
       <h1>cuento</h1>
+      <button class="gear" aria-label="Settings" @click=${() => setSettingsOpen(true)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"
+          />
+        </svg>
+      </button>
     </div>
     <p class="count">
       ${() => html`<span class="big">${readThisYear()}</span>` /* new each time: it ticks in */}
@@ -662,8 +757,8 @@ function scanner() {
 mount(
   document.getElementById('app') as HTMLElement,
   html`<div class="layout">
-    <aside class="side">${hero()} ${addBar()} ${toolbar()} ${backup()}</aside>
-    ${scanner}
+    <aside class="side">${hero()} ${addBar()} ${toolbar()} ${saveWarning}</aside>
+    ${scanner} ${settings} ${updateBar}
     <section class="main" aria-label="Your shelf">
       ${empty}
       <ul class="shelf">
@@ -675,3 +770,4 @@ mount(
 // Books rise in one after another as the page opens; after that, books
 // that come and go glide instead.
 setTimeout(() => document.documentElement.classList.add('settled'), 1500);
+updates.start();
