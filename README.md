@@ -32,6 +32,7 @@ Open the deployed page, or run your own:
 
 ```sh
 npm install           # TypeScript, Prettier, playwright-core: tools only
+robbie build          # compiles src/ into build/site/
 robbie serve          # http://localhost:8080/
 robbie check          # types, unit tests, the page in headless Chromium
 robbie deploy         # to Cloudflare, as static files
@@ -60,26 +61,28 @@ and export now and then.
 
 Four ideas, a module each, read in this order:
 
-1. **An ISBN is a check digit away from wrong** ([web/isbn.js](web/isbn.js)).
+1. **An ISBN is a check digit away from wrong** ([src/isbn.ts](src/isbn.ts)).
    Both lengths are checked, and every book is kept by its ISBN-13.
 2. **Two services, and offline is not "no such book"**
-   ([web/lookup.js](web/lookup.js)). Open Library first, Google Books
+   ([src/lookup.ts](src/lookup.ts)). Open Library first, Google Books
    when it has no record; a lookup that reached neither throws. Only
    `https:` cover URLs are kept, since spark does not sanitise attributes.
-3. **The shelf is plain data** ([web/shelf.js](web/shelf.js)). A book is
+3. **The shelf is plain data** ([src/shelf.ts](src/shelf.ts)). A book is
    a record; a status brings its dates; the shelf is kept in
    `localStorage` and travels as an export file.
-4. **The page is signals and templates** ([web/app.js](web/app.js)). The
+4. **The page is signals and templates** ([src/app.ts](src/app.ts)). The
    books are a signal; a computed filters and searches them; spark's keyed
    `each()` keeps one row per book, updated in place.
 
-There is no build: the browser runs `web/` as it is. TypeScript checks
-the JavaScript through its JSDoc (`tsconfig.json`), and `web/spark/` is
-spark at a tag, copied by `robbie spark`.
+cuento is TypeScript, strict. `robbie build` compiles `src/` into
+`build/site/`, beside `public/` (the page, its style and icon) and spark,
+which `src/spark/` vendors at a tag (`robbie spark`) as JavaScript with
+its own type declarations. The tests are TypeScript too, and Node runs
+them as they are.
 
 ## Tests
 
-`robbie check`: TypeScript over every module; the pure modules in Node
+`robbie check`: strict TypeScript over the app and the tests; the pure modules in Node
 (check digits, the lookup's fallback and offline case, unsafe cover URLs,
 status dates, imports, a full or broken storage); and the page in
 headless Chromium with the services faked (adding, every note the ISBN
@@ -94,4 +97,4 @@ reload, and that a book's title never becomes HTML).
 
 ## Licence
 
-ISC: see [LICENSE](LICENSE). spark, in `web/spark/`, is ISC too.
+ISC: see [LICENSE](LICENSE). spark, in `src/spark/`, is ISC too.

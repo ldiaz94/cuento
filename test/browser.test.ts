@@ -2,46 +2,52 @@
  * with Open Library and Google Books faked: adding books, every note the
  * ISBN field gives, statuses and rating, filters and search, a reload, and
  * that a book's text never becomes HTML. CHROMIUM names the browser
- * (default /usr/sbin/chromium). Depends on test/serve.js. */
+ * (default /usr/sbin/chromium). Runs build/site/ (robbie build first).
+ * Depends on test/serve.ts. */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright-core';
-import { serve } from './serve.js';
+import { chromium, type Browser, type Page } from 'playwright-core';
+import type { Server } from 'node:http';
+import { serve, origin } from './serve.ts';
 
 /** What the fake Open Library knows, by ISBN-13. */
-const LIBRARY = {
-  9780306406157: {
+const LIBRARY: Record<string, object> = {
+  '9780306406157': {
     title: 'Typesetting Mathematics',
     authors: [{ name: 'A. Writer' }],
     number_of_pages: 210,
   },
-  9780804429573: { title: '<img src=x onerror="window.hacked=1">', authors: [{ name: 'Mallory' }] },
+  '9780804429573': {
+    title: '<img src=x onerror="window.hacked=1">',
+    authors: [{ name: 'Mallory' }],
+  },
 };
 
-let server, browser, page, origin;
+let server: Server, browser: Browser, page: Page;
+/** Errors the page threw. */
+const errors: string[] = [];
 /** Whether the fake services answer, or the network is down. */
 let online = true;
 
 before(async () => {
   server = await serve();
-  origin = 'http://localhost:' + server.address().port + '/';
   browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/usr/sbin/chromium' });
   page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  page.errors = [];
-  page.on('pageerror', e => page.errors.push(e.message));
+  page.on('pageerror', e => errors.push(e.message));
   await page.route(/openlibrary\.org|googleapis\.com/, route => {
     if (!online) return route.abort();
-    const isbn = /ISBN:(\d+)|isbn:(\d+)/.exec(route.request().url()).slice(1).find(Boolean);
+    const url = route.request().url();
+    const isbn = /isbn:(\d+)/i.exec(url)?.[1] || '';
     const known = LIBRARY[isbn];
     return route.fulfill({
-      json: route.request().url().includes('openlibrary')
+      json: url.includes('openlibrary')
         ? known
           ? { ['ISBN:' + isbn]: known }
           : {}
         : { totalItems: 0 },
     });
   });
-  await page.goto(origin);
+  await page.goto(origin(server));
 });
 after(async () => {
   await browser?.close();
@@ -49,15 +55,17 @@ after(async () => {
 });
 
 /** Types text in the ISBN field and adds it. */
-async function addIsbn(text) {
+async function addIsbn(text: string) {
   await page.fill('[aria-label=ISBN]', text);
   await page.click('.add form > button');
 }
+/** The text of the first element matching selector ('' when none). */
+const text = async (selector: string) => (await page.textContent(selector)) ?? '';
 /** The titles on the shelf, in order. */
 const titles = () => page.$$eval('.book .title strong', els => els.map(e => e.textContent));
 
 test('an empty shelf says how to add a book', async () => {
-  assert.match(await page.textContent('.empty'), /shelf is empty/);
+  assert.match(await text('.empty'), /shelf is empty/);
 });
 
 test('a typed ISBN-10 is looked up and shelved as its ISBN-13', async () => {
@@ -70,9 +78,9 @@ test('a typed ISBN-10 is looked up and shelved as its ISBN-13', async () => {
 
 test('the ISBN field says what is wrong', async () => {
   await addIsbn('12345');
-  assert.match(await page.textContent('.add .note'), /isn't an ISBN/);
+  assert.match(await text('.add .note'), /isn't an ISBN/);
   await addIsbn('9780306406157');
-  assert.match(await page.textContent('.add .note'), /on your shelf already/);
+  assert.match(await text('.add .note'), /on your shelf already/);
   online = false;
   try {
     await addIsbn('9780000000002');
@@ -90,7 +98,7 @@ test('a book no service knows is added by hand, and its text stays text', async 
   await addIsbn('080442957X');
   await page.waitForFunction(() => document.querySelectorAll('.book').length === 3);
   assert.equal((await titles())[0], '<img src=x onerror="window.hacked=1">');
-  assert.equal(await page.evaluate(() => window.hacked), undefined);
+  assert.equal(await page.evaluate(() => (window as { hacked?: number }).hacked), undefined);
 });
 
 test('reading a book dates it, and a read book can be rated', async () => {
@@ -99,7 +107,7 @@ test('reading a book dates it, and a read book can be rated', async () => {
   await row.locator('.star').nth(3).click();
   assert.equal(await row.locator('.star.on').count(), 4);
   assert.equal(await row.locator('select').inputValue(), 'read');
-  assert.match(await page.textContent('.count'), /^1 read this year/);
+  assert.match(await text('.count'), /^1 read this year/);
   await row.locator('.title').click();
   assert.match(await row.locator('input[type=date]').nth(2).inputValue(), /^\d{4}-\d\d-\d\d$/);
 });
@@ -111,9 +119,9 @@ test('filters and search narrow the shelf, and the counts follow', async () => {
   await page.fill('[aria-label=Search]', 'family');
   assert.deepEqual(await titles(), ['Family recipes']);
   await page.fill('[aria-label=Search]', 'nothing like it');
-  assert.match(await page.textContent('.empty'), /No book matches/);
+  assert.match(await text('.empty'), /No book matches/);
   await page.fill('[aria-label=Search]', '');
-  assert.match(await page.locator('.chip').nth(1).textContent(), /2/);
+  assert.match((await page.locator('.chip').nth(1).textContent()) ?? '', /2/);
 });
 
 test('the shelf is still there after a reload, with no page errors', async () => {
@@ -122,7 +130,9 @@ test('the shelf is still there after a reload, with no page errors', async () =>
   assert.equal((await titles()).length, 3);
   assert.equal(await page.locator('.star.on').count(), 4);
   // Each select shows its book's status (spark 0.1.0 showed the first option).
-  const statuses = await page.$$eval('.book select', els => els.map(e => e.value));
+  const statuses = await page.$$eval('.book select', els =>
+    (els as HTMLSelectElement[]).map(e => e.value),
+  );
   assert.deepEqual(statuses.sort(), ['read', 'want', 'want']);
-  assert.deepEqual(page.errors, []);
+  assert.deepEqual(errors, []);
 });

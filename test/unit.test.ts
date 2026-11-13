@@ -2,9 +2,9 @@
  * and its offline case, the dates a status brings, and imports. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toIsbn13, show } from '../web/isbn.js';
-import { lookup } from '../web/lookup.js';
-import { newBook, withStatus, imported, exported, merge, load, save } from '../web/shelf.js';
+import { toIsbn13, show } from '../src/isbn.ts';
+import { lookup } from '../src/lookup.ts';
+import { newBook, withStatus, imported, exported, merge, load, save } from '../src/shelf.ts';
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
   assert.equal(toIsbn13('0-306-40615-2'), '9780306406157');
@@ -18,9 +18,9 @@ test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
 
 /** A fetch that answers each service from replies (a value: its JSON; an
  * Error: unreachable), recording the URLs asked. */
-function fakeFetch(replies) {
-  const asked = [];
-  const get = async url => {
+function fakeFetch(replies: { ol: unknown; gb: unknown }) {
+  const asked: string[] = [];
+  const get = async (url: string) => {
     asked.push(url);
     const r = replies[url.includes('openlibrary') ? 'ol' : 'gb'];
     if (r instanceof Error) throw r;
@@ -88,12 +88,12 @@ test('import: an export comes back; junk and broken books are refused', () => {
 
 test('storage: a damaged shelf loads as empty, a full one says it failed', () => {
   const bad = { getItem: () => '{oops', setItem() {} };
-  assert.deepEqual(load(/** @type {any} */ (bad)), []);
+  assert.deepEqual(load(bad as unknown as Storage), []);
   const full = {
     getItem: () => null,
     setItem() {
       throw new Error('QuotaExceededError');
     },
   };
-  assert.equal(save([], /** @type {any} */ (full)), false);
+  assert.equal(save([], full as unknown as Storage), false);
 });

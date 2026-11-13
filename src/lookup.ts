@@ -11,39 +11,56 @@
  * Depends on nothing but fetch. Leaves out editions, subjects and
  * descriptions. */
 
-/** @typedef {import('./shelf.js').Found} Found */
+import type { Found } from './shelf.ts';
+
+/** What lookup fetches with: fetch, or a test's own. */
+export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
 /** How long one service may take, in ms. */
 const TIMEOUT = 8000;
 
-/** url when it is an https: URL (http: is moved to https:), else ''.
- * @param {unknown} url */
-function safeUrl(url) {
+/** url when it is an https: URL (http: is moved to https:), else ''. */
+function safeUrl(url: unknown): string {
   const s = String(url || '').replace(/^http:\/\//, 'https://');
   return /^https:\/\//.test(s) ? s : '';
 }
 
-/** A book from Open Library's jscmd=data reply for isbn, or null.
- * @param {any} reply the service's JSON
- * @param {string} isbn
- * @returns {Found | null} */
-export function fromOpenLibrary(reply, isbn) {
-  const d = reply?.['ISBN:' + isbn];
+/** Open Library's jscmd=data record of one book, as far as cuento reads it. */
+interface OpenLibraryBook {
+  title?: string;
+  subtitle?: string;
+  authors?: { name?: string }[];
+  cover?: { small?: string; medium?: string; large?: string };
+  number_of_pages?: number;
+  publish_date?: string;
+}
+
+/** Google Books' volume record, as far as cuento reads it. */
+interface GoogleVolume {
+  title?: string;
+  subtitle?: string;
+  authors?: string[];
+  imageLinks?: { thumbnail?: string; smallThumbnail?: string };
+  pageCount?: number;
+  publishedDate?: string;
+}
+
+/** A book from Open Library's jscmd=data reply for isbn, or null. */
+export function fromOpenLibrary(reply: unknown, isbn: string): Found | null {
+  const d = (reply as Record<string, OpenLibraryBook> | null)?.['ISBN:' + isbn];
   if (!d?.title) return null;
   return {
     title: d.subtitle ? d.title + ': ' + d.subtitle : d.title,
-    authors: (d.authors || []).map((/** @type {{name?: string}} */ a) => a.name).filter(Boolean),
+    authors: (d.authors || []).flatMap(a => (a.name ? [a.name] : [])),
     cover: safeUrl(d.cover?.medium || d.cover?.large || d.cover?.small),
     pages: d.number_of_pages || null,
     published: d.publish_date || '',
   };
 }
 
-/** A book from Google Books' volumes reply, or null.
- * @param {any} reply the service's JSON
- * @returns {Found | null} */
-export function fromGoogleBooks(reply) {
-  const v = reply?.items?.[0]?.volumeInfo;
+/** A book from Google Books' volumes reply, or null. */
+export function fromGoogleBooks(reply: unknown): Found | null {
+  const v = (reply as { items?: { volumeInfo?: GoogleVolume }[] } | null)?.items?.[0]?.volumeInfo;
   if (!v?.title) return null;
   return {
     title: v.subtitle ? v.title + ': ' + v.subtitle : v.title,
@@ -54,11 +71,9 @@ export function fromGoogleBooks(reply) {
   };
 }
 
-/** The JSON at url, or undefined when the service could not be reached.
- * @param {string} url
- * @param {typeof fetch} get
- * @returns {Promise<any>} */
-async function getJson(url, get) {
+/** The JSON at url (null for an error status), or undefined when the
+ * service could not be reached. */
+async function getJson(url: string, get: Fetch): Promise<unknown> {
   try {
     const r = await get(url, { signal: AbortSignal.timeout(TIMEOUT) });
     return r.ok ? await r.json() : null;
@@ -68,18 +83,15 @@ async function getJson(url, get) {
 }
 
 /** The book with ISBN-13 isbn, or null when neither service knows it;
- * throws when neither could be reached. get is fetch, or a test's own.
- * @param {string} isbn
- * @param {typeof fetch} [get]
- * @returns {Promise<Found | null>} */
-export async function lookup(isbn, get = fetch) {
+ * throws when neither could be reached. get is fetch, or a test's own. */
+export async function lookup(isbn: string, get: Fetch = fetch): Promise<Found | null> {
   const ol = await getJson(
     'https://openlibrary.org/api/books?format=json&jscmd=data&bibkeys=ISBN:' + isbn,
     get,
   );
-  const found = ol && fromOpenLibrary(ol, isbn);
+  const found = ol ? fromOpenLibrary(ol, isbn) : null;
   if (found) return found;
   const gb = await getJson('https://www.googleapis.com/books/v1/volumes?q=isbn:' + isbn, get);
   if (gb === undefined && ol === undefined) throw Error('Could not reach the book services');
-  return (gb && fromGoogleBooks(gb)) || null;
+  return gb ? fromGoogleBooks(gb) : null;
 }

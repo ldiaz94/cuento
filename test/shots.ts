@@ -1,9 +1,9 @@
 /* The README's pictures, from fixed books, so they are the same every run:
- * node test/shots.js (robbie shots) writes doc/img/shelf-light.png and
- * shelf-dark.png at phone size. Depends on test/serve.js and
+ * node test/shots.ts (robbie shots) writes doc/img/shelf-light.png and
+ * shelf-dark.png at phone size, from build/site/. Depends on test/serve.ts and
  * playwright-core (CHROMIUM names the browser). */
 import { chromium } from 'playwright-core';
-import { serve } from './serve.js';
+import { serve, origin } from './serve.ts';
 
 /** The shelf pictured: one book of each status, without covers. */
 const BOOKS = [
@@ -27,11 +27,11 @@ const BOOKS = [
 }));
 
 const server = await serve();
-const url = 'http://localhost:' + server.address().port + '/';
+const url = origin(server);
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM || '/usr/sbin/chromium',
 });
-for (const scheme of ['light', 'dark']) {
+for (const scheme of ['light', 'dark'] as const) {
   const page = await browser.newPage({
     viewport: { width: 390, height: 720 },
     deviceScaleFactor: 2,

@@ -1,15 +1,17 @@
-/* A static file server for web/, for the browser tests and for trying
- * cuento on a phone on the same network: node test/serve.js [port].
- * Depends on Node alone. Leaves out caching, ranges and HTTPS (a phone's
- * camera needs HTTPS: use the deployed site, or a tunnel). */
-import { createServer } from 'node:http';
+/* A static file server for build/site/ (robbie build), for the browser
+ * tests and for trying cuento on a phone on the same network:
+ * node test/serve.ts [port]. Depends on Node alone. Leaves out caching,
+ * ranges and HTTPS (a phone's camera needs HTTPS: use the deployed site,
+ * or a tunnel). */
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
 /** The directory served. */
-const ROOT = new URL('../web/', import.meta.url).pathname;
+const ROOT = new URL('../build/site/', import.meta.url).pathname;
 /** Media types by extension. */
-const TYPES = {
+const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -20,10 +22,10 @@ const TYPES = {
   '.wasm': 'application/wasm',
 };
 
-/** Starts serving web/ on port (0: any free one); resolves to the server. */
-export function serve(port = 0) {
+/** Starts serving build/site/ on port (0: any free one). */
+export function serve(port = 0): Promise<Server> {
   const server = createServer(async (req, res) => {
-    const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
+    const path = normalize(decodeURIComponent(new URL(req.url || '/', 'http://x').pathname));
     const file = join(ROOT, path.endsWith('/') ? path + 'index.html' : path);
     if (!file.startsWith(ROOT)) return res.writeHead(403).end();
     try {
@@ -37,7 +39,12 @@ export function serve(port = 0) {
   return new Promise(resolve => server.listen(port, () => resolve(server)));
 }
 
+/** The URL server answers on. */
+export function origin(server: Server): string {
+  return 'http://localhost:' + (server.address() as AddressInfo).port + '/';
+}
+
 if (import.meta.url === 'file://' + process.argv[1]) {
   const server = await serve(Number(process.argv[2] || 8080));
-  console.log('cuento on http://localhost:' + server.address().port + '/');
+  console.log('cuento on ' + origin(server));
 }

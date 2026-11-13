@@ -1,16 +1,21 @@
 {
-  // Types without a build: tsc checks the JavaScript and its JSDoc
-  // (robbie types); the browser runs the files as they are.
+  // The app: src/*.ts compiled to build/site/*.js (robbie build). Imports
+  // name .ts files, which tsc rewrites to .js, so Node runs the sources
+  // as they are in the tests; erasableSyntaxOnly keeps to what Node can
+  // strip (no enums, namespaces or parameter properties).
   "compilerOptions": {
-    "checkJs": true,
-    "allowJs": true,
-    "noEmit": true,
-    "strict": true,
     "target": "es2022",
-    "module": "es2022",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["es2022", "dom", "dom.iterable"],
-    "types": []
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": "src",
+    "outDir": "build/site"
   },
-  "include": ["web/*.js"]
+  "include": ["src/**/*.ts"]
 }

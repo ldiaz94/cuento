@@ -6,11 +6,12 @@
  *      │                                                      │
  *      └──► effect: save to localStorage   ◄── update(isbn) ──┘
  *
- * Depends on spark, isbn.js, lookup.js and shelf.js. Leaves out scanning
+ * Depends on spark, isbn.ts, lookup.ts and shelf.ts. Leaves out scanning
  * (the camera) and working offline, which come next. */
 import { signal, computed, effect, batch, html, each, mount } from './spark/index.js';
-import { toIsbn13, show } from './isbn.js';
-import { lookup } from './lookup.js';
+import type { Getter } from './spark/index.js';
+import { toIsbn13, show } from './isbn.ts';
+import { lookup } from './lookup.ts';
 import {
   STATUSES,
   MAX_RATING,
@@ -22,26 +23,24 @@ import {
   exported,
   imported,
   merge,
-} from './shelf.js';
+} from './shelf.ts';
+import type { Book, Status } from './shelf.ts';
 
-/** @typedef {import('./shelf.js').Book} Book */
-/** @typedef {import('./shelf.js').Status} Status */
-/** @typedef {import('./spark/index.js').Getter<Book>} BookGetter a book on the shelf, live */
-/**
- * Where adding a book is: looking it up, or why it can't be added.
- * @typedef {{state: 'looking' | 'invalid' | 'there' | 'missing' | 'offline', isbn?: string}} Adding
- */
+/** A book on the shelf, live: its row reads it through this. */
+type BookGetter = Getter<Book>;
+/** Where adding a book is: looking it up, or why it can't be added. */
+interface Adding {
+  state: 'looking' | 'invalid' | 'there' | 'missing' | 'offline';
+  isbn?: string;
+}
 
-/** The text of the field an input event came from.
- * @param {Event} e */
-const valueOf = e => /** @type {HTMLInputElement} */ (e.target).value;
+/** The text of the field an input event came from. */
+const valueOf = (e: Event) => (e.target as HTMLInputElement).value;
 
-/** What each status is called on the page.
- * @type {Record<Status, string>} */
-const LABELS = { want: 'Want to read', reading: 'Reading', read: 'Read' };
-/** The filters above the shelf: every book, or one status.
- * @type {('all' | Status)[]} */
-const FILTERS = ['all', ...STATUSES];
+/** What each status is called on the page. */
+const LABELS: Record<Status, string> = { want: 'Want to read', reading: 'Reading', read: 'Read' };
+/** The filters above the shelf: every book, or one status. */
+const FILTERS: ('all' | Status)[] = ['all', ...STATUSES];
 
 // The shelf, saved whenever it changes.
 const [books, setBooks] = signal(load());
@@ -51,14 +50,14 @@ effect(() => {
 });
 
 // What the shelf shows: a status (or all) and the words searched for.
-const [filter, setFilter] = signal(/** @type {'all' | Status} */ ('all'));
+const [filter, setFilter] = signal<'all' | Status>('all');
 const [query, setQuery] = signal('');
 // The book whose details are open, by ISBN ('' for none).
 const [open, setOpen] = signal('');
 // Adding a book: the ISBN typed, and where its lookup is: null (idle), or
 // {state: 'looking' | 'invalid' | 'there' | 'missing' | 'offline', isbn}.
 const [typed, setTyped] = signal('');
-const [adding, setAdding] = signal(/** @type {Adding | null} */ (null));
+const [adding, setAdding] = signal<Adding | null>(null);
 
 /** The books the filter and the search let through. */
 const shown = computed(() => {
@@ -75,15 +74,12 @@ const readThisYear = computed(
     books().filter(b => b.status === 'read' && b.finished.startsWith(today().slice(0, 4))).length,
 );
 
-/** Changes the book with isbn by change(book) -> book.
- * @param {string} isbn
- * @param {(book: Book) => Book} change */
-function update(isbn, change) {
+/** Changes the book with isbn by change(book) -> book. */
+function update(isbn: string, change: (book: Book) => Book) {
   setBooks(bs => bs.map(b => (b.isbn === isbn ? change(b) : b)));
 }
-/** Puts book first on the shelf and shows it.
- * @param {Book} book */
-function shelve(book) {
+/** Puts book first on the shelf and shows it. */
+function shelve(book: Book) {
   batch(() => {
     setBooks(bs => [book, ...bs]);
     setTyped('');
@@ -126,12 +122,11 @@ function addingNote() {
   return byHand(isbn);
 }
 
-/** For a book neither service knows: its title and author, by hand.
- * @param {string} isbn */
-function byHand(isbn) {
+/** For a book neither service knows: its title and author, by hand. */
+function byHand(isbn: string) {
   const [title, setTitle] = signal('');
   const [author, setAuthor] = signal('');
-  const keep = (/** @type {Event} */ e) => {
+  const keep = (e: Event) => {
     e.preventDefault();
     if (title().trim())
       shelve(
@@ -144,20 +139,16 @@ function byHand(isbn) {
       placeholder="Title"
       required
       .value=${title}
-      @input=${(/** @type {Event} */ e) => setTitle(valueOf(e))}
+      @input=${(e: Event) => setTitle(valueOf(e))}
     />
-    <input
-      placeholder="Author"
-      .value=${author}
-      @input=${(/** @type {Event} */ e) => setAuthor(valueOf(e))}
-    />
+    <input placeholder="Author" .value=${author} @input=${(e: Event) => setAuthor(valueOf(e))} />
     <button>Add</button>
   </form>`;
 }
 
 /** The ISBN field and its note. */
 function addBar() {
-  const submit = (/** @type {Event} */ e) => {
+  const submit = (e: Event) => {
     e.preventDefault();
     add();
   };
@@ -169,7 +160,7 @@ function addBar() {
         placeholder="ISBN, e.g. 978-0-306-40615-7"
         aria-label="ISBN"
         .value=${typed}
-        @input=${(/** @type {Event} */ e) => setTyped(valueOf(e))}
+        @input=${(e: Event) => setTyped(valueOf(e))}
       />
       <button>Add</button>
     </form>
@@ -179,7 +170,7 @@ function addBar() {
 
 /** The filters by status and the search field. */
 function toolbar() {
-  const count = (/** @type {'all' | Status} */ f) => () =>
+  const count = (f: 'all' | Status) => () =>
     (f === 'all' ? books() : books().filter(b => b.status === f)).length;
   return html`<nav class="tools">
     <div class="filters" role="group" aria-label="Show">
@@ -199,14 +190,13 @@ function toolbar() {
       placeholder="Search titles and authors"
       aria-label="Search"
       .value=${query}
-      @input=${(/** @type {Event} */ e) => setQuery(valueOf(e))}
+      @input=${(e: Event) => setQuery(valueOf(e))}
     />
   </nav>`;
 }
 
-/** A book's cover, or a coloured spine with its title when it has none.
- * @param {BookGetter} book */
-function cover(book) {
+/** A book's cover, or a coloured spine with its title when it has none. */
+function cover(book: BookGetter) {
   return () =>
     book().cover
       ? html`<img class="cover" src=${book().cover} alt="" loading="lazy" />`
@@ -214,17 +204,14 @@ function cover(book) {
           ${book().title.slice(0, 40)}
         </div>`;
 }
-/** A colour for a spine, the same every time for the same book.
- * @param {string} isbn */
-function hue(isbn) {
+/** A colour for a spine, the same every time for the same book. */
+function hue(isbn: string) {
   return String(Number(isbn.slice(-4)) % 360);
 }
 
-/** Stars to rate a read book; the one given again clears the rating.
- * @param {BookGetter} book */
-function stars(book) {
-  const rate = (/** @type {number} */ n) =>
-    update(book().isbn, b => ({ ...b, rating: b.rating === n ? 0 : n }));
+/** Stars to rate a read book; the one given again clears the rating. */
+function stars(book: BookGetter) {
+  const rate = (n: number) => update(book().isbn, b => ({ ...b, rating: b.rating === n ? 0 : n }));
   return html`<span class="stars" role="group" aria-label="Rating">
     ${Array.from(
       { length: MAX_RATING },
@@ -240,20 +227,15 @@ function stars(book) {
   </span>`;
 }
 
-/** A book's dates, notes and removal, shown when it is open.
- * @param {BookGetter} book */
-function details(book) {
-  const field = (
-    /** @type {'added' | 'started' | 'finished'} */ key,
-    /** @type {string} */ label,
-  ) =>
+/** A book's dates, notes and removal, shown when it is open. */
+function details(book: BookGetter) {
+  const field = (key: 'added' | 'started' | 'finished', label: string) =>
     html`<label
       >${label}
       <input
         type="date"
         .value=${() => book()[key]}
-        @change=${(/** @type {Event} */ e) =>
-          update(book().isbn, b => ({ ...b, [key]: valueOf(e) }))}
+        @change=${(e: Event) => update(book().isbn, b => ({ ...b, [key]: valueOf(e) }))}
     /></label>`;
   const remove = () => {
     if (confirm('Take “' + book().title + '” off your shelf?'))
@@ -270,7 +252,7 @@ function details(book) {
       placeholder="Notes"
       rows="3"
       .value=${() => book().notes}
-      @change=${(/** @type {Event} */ e) => update(book().isbn, b => ({ ...b, notes: valueOf(e) }))}
+      @change=${(e: Event) => update(book().isbn, b => ({ ...b, notes: valueOf(e) }))}
     ></textarea>
     <p class="meta">
       ISBN
@@ -281,12 +263,10 @@ function details(book) {
   </div>`;
 }
 
-/** One book on the shelf.
- * @param {BookGetter} book */
-function row(book) {
+/** One book on the shelf. */
+function row(book: BookGetter) {
   const isOpen = () => open() === book().isbn;
-  const move = (/** @type {Event} */ e) =>
-    update(book().isbn, b => withStatus(b, /** @type {Status} */ (valueOf(e))));
+  const move = (e: Event) => update(book().isbn, b => withStatus(b, valueOf(e) as Status));
   return html`<li class=${() => ({ book: true, open: isOpen() })}>
     ${cover(book)}
     <div class="body">
@@ -328,8 +308,8 @@ function backup() {
     a.click();
     URL.revokeObjectURL(a.href);
   };
-  const restore = async (/** @type {Event} */ e) => {
-    const input = /** @type {HTMLInputElement} */ (e.target);
+  const restore = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
@@ -357,7 +337,7 @@ function backup() {
 }
 
 mount(
-  /** @type {HTMLElement} */ (document.getElementById('app')),
+  document.getElementById('app') as HTMLElement,
   html`<header>
       <h1>cuento</h1>
       <p class="count">${() => readThisYear()} read this year</p>
