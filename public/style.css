@@ -802,9 +802,21 @@ h1 {
   color: var(--muted);
   text-align: center;
 }
-.empty img {
+.cuca {
   margin-bottom: 8px;
-  animation: bob 3s ease-in-out infinite;
+  overflow: visible;
+}
+/* Her head sways slowly on her neck, the book stays put; now and then
+   she blinks. */
+.cuca .head {
+  transform-box: view-box;
+  transform-origin: 104px 124px; /* her neck */
+  animation: sway 6s ease-in-out infinite;
+}
+.cuca .eyes circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5s infinite;
 }
 .empty strong {
   font: 600 22px/1.2 var(--serif);
@@ -815,9 +827,26 @@ h1 {
   margin: 0;
   max-width: 34ch;
 }
-@keyframes bob {
-  50% {
-    transform: translateY(-6px);
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-6deg);
+  }
+  65% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
   }
 }
 
