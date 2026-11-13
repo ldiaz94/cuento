@@ -2,7 +2,7 @@
 // (robbie icons, from cuento's top directory). Run it only when icon.svg
 // changes: the PNGs are kept. iOS fills transparency black, so the Home
 // Screen icon has a paper background; the maskable one is also padded,
-// so no launcher crops Cuca.
+// so no launcher crops Tilde.
 errexit := true
 pipefail := true
 paper := '#f7f2e8'

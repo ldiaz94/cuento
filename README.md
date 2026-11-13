@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="doc/img/banner.svg" alt="cuento: count the books you read. Cuca the bookworm on a red book, beside a shelf of spines" width="800">
+  <img src="doc/img/banner.svg" alt="cuento: count the books you read. Tilde the bookworm on a red book, beside a shelf of spines" width="800">
 </p>
 
 cuento keeps the books you read. Scan a book's barcode or type its
@@ -9,7 +9,8 @@ notes. It counts what you finished this year. It runs in the browser,
 keeps your shelf on your device, works offline, and needs no account.
 
 The name is Spanish: _un cuento_ is a story, and _cuento_ is also "I
-count". The mascot is **Cuca**, a bookworm with round glasses and a
+count". The mascot is **Tilde**, a bookworm named after the curl over
+Spanish ñ, which her body makes too, with round glasses and a
 pencil behind her ear, for keeping count.
 
 cuento is also the first real app on [spark](https://github.com/ldiaz94/spark),

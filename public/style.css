@@ -204,7 +204,7 @@ textarea::placeholder {
   }
 }
 
-/* ---- the hero: Cuca, the name, the count ---- */
+/* ---- the hero: Tilde, the name, the count ---- */
 
 .hero {
   display: grid;
@@ -802,18 +802,18 @@ h1 {
   color: var(--muted);
   text-align: center;
 }
-.cuca {
+.tilde {
   margin-bottom: 8px;
   overflow: visible;
 }
 /* Her head sways slowly on her neck, the book stays put; now and then
    she blinks. */
-.cuca .head {
+.tilde .head {
   transform-box: view-box;
   transform-origin: 104px 124px; /* her neck */
   animation: sway 6s ease-in-out infinite;
 }
-.cuca .eyes circle {
+.tilde .eyes circle {
   transform-box: fill-box;
   transform-origin: center;
   animation: blink 5s infinite;

@@ -399,11 +399,11 @@ function row(book: BookGetter) {
   </li>`;
 }
 
-/** Cuca, drawn in the page (icon.svg's drawing, in parts) so she can
+/** Tilde, drawn in the page (icon.svg's drawing, in parts) so she can
  * move: her head sways on her neck and she blinks, while her book stays
  * still. */
-function cuca() {
-  return html`<svg class="cuca" viewBox="0 0 256 256" width="128" height="128" aria-hidden="true">
+function tilde() {
+  return html`<svg class="tilde" viewBox="0 0 256 256" width="128" height="128" aria-hidden="true">
     <path
       d="M176 190 C176 140 96 156 100 112"
       fill="none"
@@ -502,7 +502,7 @@ function empty() {
   return books().length
     ? html`<p class="empty">No book matches. Try fewer words, or another shelf.</p>`
     : html`<div class="empty">
-        ${cuca()}
+        ${tilde()}
         <p><strong>Your shelf is empty.</strong></p>
         <p>Scan a book's barcode, or type its ISBN: the number above the barcode.</p>
       </div>`;
@@ -545,7 +545,7 @@ function backup() {
   </footer>`;
 }
 
-/** The top: Cuca, the name, and what cuento counts. */
+/** The top: Tilde, the name, and what cuento counts. */
 function hero() {
   const year = today().slice(0, 4);
   return html`<header class="hero">
