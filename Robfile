@@ -1,0 +1,42 @@
+# Robfile for cuento: count the books you read, a web app on spark.
+#
+# The page is web/, served as it is: no build. Its JavaScript is checked
+# by TypeScript through JSDoc, tested in Node and in headless Chromium
+# (playwright-core, CHROMIUM), formatted by Prettier, and deployed to
+# Cloudflare as static assets. npm install once for the tools.
+
+bin     = node_modules/.bin
+spark   = /home/luis/r/spark
+sparkv  = v0.1.1
+port    = 8080
+
+# Types, the pure modules, then the page in a browser.
+task check:
+    {bin}/tsc -p .
+    node --test test/unit.test.js test/browser.test.js
+
+# The sources as Prettier lays them out (spark/ is spark's own).
+task fmt:
+    {bin}/prettier --check web test
+
+# The page on http://localhost:{port}/ (the camera needs HTTPS: deploy).
+task serve:
+    node test/serve.js {port}
+
+# spark, as tagged {sparkv} in {spark}, copied into web/spark/.
+task spark:
+    for f in core.js dom.js index.js index.d.ts; do git -C {spark} show {sparkv}:src/$f > web/spark/$f; done
+    cp {spark}/LICENSE web/spark/LICENSE
+    echo "spark {sparkv} (https://github.com/ldiaz94/spark), copied by robbie spark; ISC, see LICENSE." > web/spark/VERSION
+
+# Lines in cuento's own sources.
+task loc:
+    wc -l web/*.js web/*.css web/*.html | sort -n
+
+# To Cloudflare, once checked.
+task deploy: check fmt
+    npx wrangler deploy
+
+# The README's pictures, from fixed books.
+task shots:
+    node test/shots.js

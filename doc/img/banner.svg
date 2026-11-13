@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 200" width="800" height="200">
+<title>cuento: count the books you read</title>
+<rect width="800" height="200" rx="16" fill="#f6f1e7" stroke="#e2d9c8" stroke-width="2"/>
+<g transform="translate(16 8) scale(0.72)">
+<path d="M176 190 C176 140 96 156 100 112" fill="none" stroke="#2b2620" stroke-width="44" stroke-linecap="round"/>
+<path d="M176 190 C176 140 96 156 100 112" fill="none" stroke="#7fb069" stroke-width="34" stroke-linecap="round"/>
+<path d="M150 150 C150 138 128 140 126 134" fill="none" stroke="#5a8a4a" stroke-width="6" stroke-linecap="round"/>
+<g transform="rotate(28 150 70)"><rect x="144" y="18" width="12" height="62" rx="2" fill="#d9a21b" stroke="#2b2620" stroke-width="4"/><path d="M144 18 L150 4 L156 18 Z" fill="#f6f1e7" stroke="#2b2620" stroke-width="4" stroke-linejoin="round"/><rect x="144" y="70" width="12" height="10" fill="#b5532c" stroke="#2b2620" stroke-width="4"/></g>
+<circle cx="104" cy="88" r="42" fill="#7fb069" stroke="#2b2620" stroke-width="6"/>
+<circle cx="141" cy="88" r="9" fill="#5a8a4a" stroke="#2b2620" stroke-width="4"/>
+<circle cx="88" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5"/>
+<circle cx="120" cy="86" r="14" fill="#fffdf8" stroke="#2b2620" stroke-width="5"/>
+<path d="M102 85 H106" stroke="#2b2620" stroke-width="5"/>
+<circle cx="90" cy="88" r="4.5" fill="#2b2620"/><circle cx="122" cy="88" r="4.5" fill="#2b2620"/>
+<path d="M90 108 Q104 120 118 108" fill="none" stroke="#2b2620" stroke-width="5" stroke-linecap="round"/>
+<rect x="44" y="176" width="168" height="56" rx="8" fill="#b5532c" stroke="#2b2620" stroke-width="6"/>
+<rect x="44" y="176" width="168" height="10" rx="5" fill="#fffdf8" opacity="0"/>
+<path d="M72 176 V232 M184 176 V232" stroke="#d9a21b" stroke-width="6"/>
+<rect x="92" y="192" width="80" height="24" rx="3" fill="#fffdf8" stroke="#2b2620" stroke-width="4"/>
+<path d="M102 204 H162" stroke="#7a7064" stroke-width="4" stroke-linecap="round"/>
+</g>
+<text x="215" y="108" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="80" fill="#2b2620">cuento</text>
+<text x="218" y="144" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#7a7064">count the books you read</text>
+<g stroke="#2b2620" stroke-width="3" stroke-linejoin="round">
+<rect x="520" y="96" width="28" height="84" fill="hsl(25 35% 42%)"/>
+<rect x="550" y="72" width="24" height="108" fill="hsl(210 35% 42%)"/>
+<rect x="576" y="110" width="30" height="70" fill="#b5532c"/>
+<rect x="608" y="84" width="26" height="96" fill="hsl(150 30% 38%)"/>
+<rect x="636" y="100" width="22" height="80" fill="hsl(45 45% 45%)"/>
+<rect x="660" y="66" width="30" height="114" fill="hsl(210 35% 42%)"/>
+<rect x="692" y="92" width="26" height="88" fill="hsl(25 35% 42%)"/>
+</g>
+<g fill="#d9a21b"><rect x="520" y="110" width="28" height="4"/><rect x="550" y="86" width="24" height="4"/><rect x="608" y="98" width="26" height="4"/><rect x="660" y="80" width="30" height="4"/></g>
+<path d="M504 182 H736" stroke="#2b2620" stroke-width="5" stroke-linecap="round"/>
+</svg>

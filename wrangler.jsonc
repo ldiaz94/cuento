@@ -1,0 +1,7 @@
+// cuento is static: Cloudflare serves web/ as it is. npx wrangler deploy
+// (robbie deploy, which checks first).
+{
+  "name": "cuento",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./web" }
+}

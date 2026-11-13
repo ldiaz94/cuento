@@ -1,0 +1,16 @@
+{
+  // Types without a build: tsc checks the JavaScript and its JSDoc
+  // (robbie types); the browser runs the files as they are.
+  "compilerOptions": {
+    "checkJs": true,
+    "allowJs": true,
+    "noEmit": true,
+    "strict": true,
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": []
+  },
+  "include": ["web/*.js"]
+}
