@@ -52,7 +52,7 @@ export class Shelf extends DurableObject<Env> {
           // a socket closing as we speak: it syncs when it comes back
         }
       }
-    return changedSince(this.sql, request.since);
+    return changedSince(this.sql, request.since, request.version);
   }
 
   /** A device listening: a WebSocket the object may sleep through. */

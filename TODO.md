@@ -2,9 +2,9 @@
 
 ## 1. Extend the book model and migration
 
-- [ ] Add the `owned` status, optional `acquired` date, reading sessions and an `upNext` marker.
-- [ ] Preserve existing dates when migrating stored books.
-- [ ] Version exports and handle mixed-version sync so older app versions cannot silently discard new data.
+- [x] Add the `owned` status, optional `acquired` date, reading sessions and an `upNext` marker.
+- [x] Preserve existing dates when migrating stored books.
+- [x] Version exports and handle mixed-version sync so older app versions cannot silently discard new data.
 
 ## 2. Add the Owned status
 
@@ -16,11 +16,11 @@
 
 ## 3. Add reading history
 
-- [ ] Replace the single reading period with sessions containing a start date and optional finish date.
+- [x] Replace the single reading period with sessions containing a start date and optional finish date.
 - [ ] Support **Read again** without losing earlier reads.
-- [ ] Derive the last-read date and completed-read count from sessions.
+- [x] Derive the last-read date and completed-read count from sessions.
 - [ ] Allow reading history to be backfilled and edited manually.
-- [ ] Update yearly statistics to count each completed read.
+- [x] Update yearly statistics to count each completed read.
 
 ## 4. Add Up next
 

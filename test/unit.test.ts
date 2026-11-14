@@ -5,7 +5,19 @@ import assert from 'node:assert/strict';
 import { toIsbn13, show } from '../src/isbn.ts';
 import { bookCode } from '../src/scan.ts';
 import { lookup, search } from '../src/lookup.ts';
-import { newBook, withStatus, imported, exported, merge, load, save } from '../src/shelf.ts';
+import {
+  newBook,
+  withStatus,
+  imported,
+  exported,
+  merge,
+  load,
+  save,
+  readBook,
+  isBook,
+  lastRead,
+  readCount,
+} from '../src/shelf.ts';
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
   assert.equal(toIsbn13('0-306-40615-2'), '9780306406157');
@@ -60,22 +72,60 @@ test('lookup: unreachable services throw, so "offline" is not "no such book"', a
   assert.equal(await lookup('9780306406157', half.get), null);
 });
 
-test('statuses date a book: started when begun, finished when read', () => {
+test('statuses date a book: acquisition, reading sessions and rereads', () => {
   const b = newBook('9780306406157', { title: 'T' }, 'want', '2026-01-01');
-  assert.deepEqual([b.added, b.started, b.finished], ['2026-01-01', '', '']);
-  const read = withStatus(b, 'read', '2026-02-02');
+  assert.deepEqual([b.added, b.started, b.finished, b.acquired], ['2026-01-01', '', '', '']);
+  assert.deepEqual(b.readings, []);
+  const owned = withStatus(b, 'owned', '2026-01-15');
+  assert.equal(owned.acquired, '2026-01-15');
+  const read = withStatus(owned, 'read', '2026-02-02');
   assert.deepEqual([read.started, read.finished], ['2026-02-02', '2026-02-02']);
+  assert.deepEqual(read.readings, [{ started: '2026-02-02', finished: '2026-02-02' }]);
+  assert.equal(read.acquired, '2026-01-15');
   const again = withStatus(read, 'reading', '2026-03-03');
-  assert.deepEqual([again.started, again.finished], ['2026-02-02', '']);
-  assert.equal(withStatus(again, 'want').started, '2026-02-02'); // a slip keeps its dates
+  assert.deepEqual([again.started, again.finished], ['2026-03-03', '']);
+  assert.equal(again.readings.length, 2);
+  assert.deepEqual(again.readings[0], read.readings[0]); // the earlier read survives
+  const finished = withStatus(again, 'read', '2026-03-10');
+  assert.deepEqual(finished.readings[1], { started: '2026-03-03', finished: '2026-03-10' });
+  assert.equal(withStatus(again, 'want').started, '2026-03-03'); // a slip keeps its dates
 });
 
-test('import: an export comes back; junk and broken books are refused', () => {
+test('Up next survives shelving and clears when reading starts', () => {
+  const wanted = { ...newBook('9780306406157', { title: 'T' }), upNext: true };
+  const owned = withStatus(wanted, 'owned', '2026-01-02');
+  assert.equal(owned.upNext, true);
+  assert.equal(withStatus(owned, 'reading', '2026-01-03').upNext, false);
+});
+
+test('import: v2 exports round-trip and legacy books migrate with their dates', () => {
   const a = newBook('9780306406157', { title: 'A' }),
     b = newBook('9780804429573', { title: 'B' });
   assert.deepEqual(imported(exported([a, b])), [a, b]);
+  assert.equal(JSON.parse(exported([a])).cuento, 2);
   assert.throws(() => imported('not json'), /not a cuento export/);
   assert.throws(() => imported('{"books": []}'), /not a cuento export/);
+  assert.throws(() => imported('{"cuento":3,"books":[]}'), /not a cuento export/);
+  const legacy = {
+    isbn: a.isbn,
+    title: a.title,
+    authors: a.authors,
+    cover: '',
+    pages: null,
+    published: '',
+    status: 'read',
+    added: '2020-01-01',
+    started: '2020-02-01',
+    finished: '2020-02-10',
+    rating: 4,
+    notes: 'old',
+  };
+  const migrated = imported(JSON.stringify({ cuento: 1, books: [legacy] }))[0];
+  assert.equal(migrated?.v, 2);
+  assert.deepEqual(migrated?.readings, [{ started: '2020-02-01', finished: '2020-02-10' }]);
+  assert.deepEqual([migrated?.started, migrated?.finished], ['2020-02-01', '2020-02-10']);
+  assert.equal(migrated?.acquired, '');
+  assert.equal(migrated?.upNext, false);
   const text = JSON.stringify({
     cuento: 1,
     books: [a, { isbn: '123', title: 'x', status: 'read' }],
@@ -87,9 +137,33 @@ test('import: an export comes back; junk and broken books are refused', () => {
   );
 });
 
-test('storage: a damaged shelf loads as empty, a full one says it failed', () => {
+test('storage: damaged data loads as empty; legacy books migrate and save intact', () => {
   const bad = { getItem: () => '{oops', setItem() {} };
   assert.deepEqual(load(bad as unknown as Storage), []);
+  const legacy = newBook('9780306406157', { title: 'Old' });
+  const old = {
+    ...legacy,
+    v: undefined,
+    readings: undefined,
+    acquired: undefined,
+    upNext: undefined,
+  };
+  const stored = {
+    value: JSON.stringify([old]),
+    getItem() {
+      return this.value;
+    },
+    setItem(_key: string, value: string) {
+      this.value = value;
+    },
+  };
+  const loaded = load(stored as unknown as Storage);
+  assert.equal(loaded[0]?.v, 2);
+  assert.deepEqual(loaded[0]?.readings, []);
+  assert.equal(save(loaded, stored as unknown as Storage), true);
+  assert.equal(JSON.parse(stored.value)[0].v, 2);
+  assert.equal(isBook({ ...loaded[0], readings: [{ started: '' }] }), false);
+  assert.equal(readBook({ ...loaded[0], v: 3 }), null);
   const full = {
     getItem: () => null,
     setItem() {
@@ -97,6 +171,15 @@ test('storage: a damaged shelf loads as empty, a full one says it failed', () =>
     },
   };
   assert.equal(save([], full as unknown as Storage), false);
+});
+
+test('reading history derives last read and completed count', () => {
+  const book = newBook('9780306406157', { title: 'T' }, 'read', '2025-01-02');
+  const reread = withStatus(withStatus(book, 'reading', '2026-02-01'), 'read', '2026-02-05');
+  assert.equal(lastRead(reread), '2026-02-05');
+  assert.equal(readCount(reread), 2);
+  assert.equal(lastRead(withStatus(reread, 'reading', '2026-03-01')), '2026-02-05');
+  assert.equal(readCount(withStatus(reread, 'reading', '2026-03-01')), 2);
 });
 
 test('scanned codes: only an ISBN-13 with the right check digit is a book', () => {

@@ -40,6 +40,8 @@ import {
   today,
   newBook,
   withStatus,
+  withReadingDate,
+  readingsInYear,
   load,
   save,
   exported,
@@ -64,9 +66,19 @@ interface Adding {
 const valueOf = (e: Event) => (e.target as HTMLInputElement).value;
 
 /** What each status is called on the page. */
-const LABELS: Record<Status, string> = { want: 'Want to read', reading: 'Reading', read: 'Read' };
+const LABELS: Record<Status, string> = {
+  want: 'Want to read',
+  owned: 'Owned',
+  reading: 'Reading',
+  read: 'Read',
+};
 /** What each status is called on a book's switch, where room is short. */
-const SHORT: Record<Status, string> = { want: 'Want', reading: 'Reading', read: 'Read' };
+const SHORT: Record<Status, string> = {
+  want: 'Want',
+  owned: 'Owned',
+  reading: 'Reading',
+  read: 'Read',
+};
 /** What the shelf shows: every book, one status, or the books finished
  * in a year (History). */
 type Filter = 'all' | Status | number;
@@ -94,9 +106,10 @@ function passes(book: Book, f: Filter) {
   if (typeof f === 'number') return finishedIn(book, f);
   return f === 'all' || book.status === f;
 }
-/** Whether book was finished in year. */
-const finishedIn = (book: Book, year: number) =>
-  book.status === 'read' && book.finished.startsWith(String(year));
+/** Whether book has a completed reading in year. */
+const finishedIn = (book: Book, year: number) => readingsInYear(book, year).length > 0;
+/** The latest completion in year, for sorting History. */
+const finishedOn = (book: Book, year: number) => readingsInYear(book, year).at(-1)?.finished ?? '';
 
 /** The books the filter and the search let through; a year's books in
  * the order they were finished, latest first. */
@@ -107,20 +120,23 @@ const shown = computed(() => {
       passes(b, filter()) &&
       words.every(w => (b.title + ' ' + b.authors.join(' ')).toLowerCase().includes(w)),
   );
-  return typeof filter() === 'number'
-    ? found.sort((a, b) => b.finished.localeCompare(a.finished))
+  const year = filter();
+  return typeof year === 'number'
+    ? found.sort((a, b) => finishedOn(b, year).localeCompare(finishedOn(a, year)))
     : found;
 });
 /** This year, as a number. */
 const thisYear = () => Number(today().slice(0, 4));
 /** Books finished this calendar year: what cuento counts. */
-const readThisYear = computed(() => books().filter(b => finishedIn(b, thisYear())).length);
+const readThisYear = computed(() =>
+  books().reduce((n, b) => n + readingsInYear(b, thisYear()).length, 0),
+);
 /** The years books were finished in, latest first: the History. */
 const years = computed(() =>
   [
     ...new Set(
       books().flatMap(b =>
-        b.status === 'read' && b.finished ? [Number(b.finished.slice(0, 4))] : [],
+        b.readings.filter(r => r.finished).map(r => Number(r.finished.slice(0, 4))),
       ),
     ),
   ].sort((a, b) => b - a),
@@ -418,13 +434,18 @@ function stars(book: BookGetter) {
 
 /** A book's dates, notes and removal, shown when it is open. */
 function details(book: BookGetter) {
-  const field = (key: 'added' | 'started' | 'finished', label: string) =>
+  const field = (key: 'added' | 'acquired' | 'started' | 'finished', label: string) =>
     html`<label
       >${label}
       <input
         type="date"
         .value=${() => book()[key]}
-        @change=${(e: Event) => update(book().isbn, b => ({ ...b, [key]: valueOf(e) }))}
+        @change=${(e: Event) =>
+          update(book().isbn, b =>
+            key === 'started' || key === 'finished'
+              ? withReadingDate(b, key, valueOf(e))
+              : { ...b, [key]: valueOf(e) },
+          )}
     /></label>`;
   const remove = () => {
     if (confirm('Take “' + book().title + '” off your shelf?'))
@@ -437,7 +458,8 @@ function details(book: BookGetter) {
   };
   return html`<div class="details">
     <div class="dates">
-      ${field('added', 'Added')} ${field('started', 'Started')} ${field('finished', 'Finished')}
+      ${field('added', 'Added')} ${field('acquired', 'Acquired')} ${field('started', 'Started')}
+      ${field('finished', 'Finished')}
     </div>
     <textarea
       placeholder="Notes"

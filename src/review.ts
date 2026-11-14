@@ -10,20 +10,20 @@
  *
  * yearStats() does the counting, as a pure function; the rest draws it.
  * Depends on spark, the shelf's Book, Tilde and the bookcloths, and
- * review.css. Leaves out comparing years, and books not marked read. */
+ * review.css. Leaves out comparing years and unfinished reading sessions. */
 import { signal, onCleanup, html } from './spark/index.js';
-import { today } from './shelf.ts';
+import { readingsInYear, today } from './shelf.ts';
 import type { Book } from './shelf.ts';
 import { cloth, hash, tilde } from './tilde.ts';
 
 /** What a year of reading comes to. */
 export interface Stats {
   year: number;
-  /** The books read and finished in the year, in the order finished. */
+  /** The reads finished in the year, in finish order; rereads repeat their book. */
   read: Book[];
   /** Their pages, of those whose pages are known. */
   pages: number;
-  /** The books finished in each month, January first. */
+  /** The reads finished in each month, January first. */
   months: Book[][];
   /** The month (0 to 11) with more books than any other; null on a tie. */
   best: number | null;
@@ -62,9 +62,9 @@ const MONTHS = [
 /** Days from one 'YYYY-MM-DD' to another. */
 const days = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 864e5);
 
-/** The days book took, counting its first and last, or null when its
- * dates can't say: no start, a start after the end, or both on the day it
- * was added (shelving a book as read dates it that day). */
+/** The days this reading took, counting its first and last, or null when
+ * its dates can't say: no start, a start after the end, or both on the day
+ * it was added (shelving a book as read dates it that day). */
 function took(book: Book): number | null {
   const { started, finished, added } = book;
   if (!started || started > finished || (started === finished && finished === added)) return null;
@@ -74,7 +74,13 @@ function took(book: Book): number | null {
 /** Everything the review shows of year, from books; now is today. */
 export function yearStats(year: number, books: Book[], now = today()): Stats {
   const read = books
-    .filter(b => b.status === 'read' && b.finished.startsWith(year + '-'))
+    .flatMap(book =>
+      readingsInYear(book, year).map(({ started, finished }) =>
+        book.started === started && book.finished === finished
+          ? book
+          : { ...book, started, finished },
+      ),
+    )
     .sort((a, b) => a.finished.localeCompare(b.finished));
   const months = MONTHS.map((_, m) => read.filter(b => Number(b.finished.slice(5, 7)) === m + 1));
   const most = Math.max(...months.map(m => m.length));

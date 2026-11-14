@@ -25,12 +25,17 @@ const BOOKS = [
     '978000000000' + i,
     { title: String(title), authors: [String(author)], pages: Number(pages) },
     'want',
+    '2026-01-01',
   ),
+  v: 2,
   cover: 'https://covers.example/' + i + '.png',
   status: 'read',
-  rating,
+  acquired: '2026-01-01',
   started: '2026-' + started,
   finished: '2026-' + finished,
+  readings: [{ started: '2026-' + started, finished: '2026-' + finished }],
+  rating,
+  upNext: false,
 }));
 /** The cards these books make, in order. */
 const CARDS = ['opening', 'tally', 'months', 'favourites', 'records', 'pace', 'closing'];

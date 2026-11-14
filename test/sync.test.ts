@@ -8,7 +8,7 @@ import { setUp, parse, apply, applySettings, changedSince, MAX_CHANGES } from '.
 import type { Sql } from '../worker/store.ts';
 import { diff, diffSettings, recorded, received, readCode, newCode, grouped } from '../src/sync.ts';
 import type { Snapshot, Reply, Change, Goals } from '../src/sync.ts';
-import { newBook, withStatus } from '../src/shelf.ts';
+import { newBook, readBook, withStatus } from '../src/shelf.ts';
 import type { Book } from '../src/shelf.ts';
 
 /** A new, empty store in memory. */
@@ -22,16 +22,22 @@ function store(): Sql {
 /** A book with this ISBN and title, added on day. */
 const book = (isbn: string, title = 'T', day = '2026-01-01') =>
   newBook(isbn, { title }, 'want', day);
+/** The v1 shape of book, as an old device or store would hold it. */
+function legacyBook(value: Book): Book {
+  const old = { ...value } as Record<string, unknown>;
+  for (const key of ['v', 'acquired', 'readings', 'upNext']) delete old[key];
+  return old as unknown as Book;
+}
 const DUNE = '9780306406157';
 const EMMA = '9780804429573';
 
 test('store: the later change wins, a tie keeps the server’s, deletions travel', () => {
   const sql = store();
-  assert.equal(apply(sql, [{ isbn: DUNE, book: book(DUNE, 'A'), updated: 10 }]), 1);
-  assert.equal(apply(sql, [{ isbn: DUNE, book: book(DUNE, 'old'), updated: 5 }]), 0);
-  assert.equal(apply(sql, [{ isbn: DUNE, book: book(DUNE, 'tie'), updated: 10 }]), 0);
-  assert.equal(apply(sql, [{ isbn: DUNE, book: null, updated: 20 }]), 1);
-  apply(sql, [{ isbn: EMMA, book: book(EMMA), updated: 15 }]);
+  assert.equal(apply(sql, [{ v: 2, isbn: DUNE, book: book(DUNE, 'A'), updated: 10 }]), 1);
+  assert.equal(apply(sql, [{ v: 2, isbn: DUNE, book: book(DUNE, 'old'), updated: 5 }]), 0);
+  assert.equal(apply(sql, [{ v: 2, isbn: DUNE, book: book(DUNE, 'tie'), updated: 10 }]), 0);
+  assert.equal(apply(sql, [{ v: 2, isbn: DUNE, book: null, updated: 20 }]), 1);
+  apply(sql, [{ v: 2, isbn: EMMA, book: book(EMMA), updated: 15 }]);
 
   const all = changedSince(sql, 0);
   assert.equal(all.seq, 3);
@@ -48,15 +54,74 @@ test('store: the later change wins, a tie keeps the server’s, deletions travel
 });
 
 test('store: requests are checked before they are kept', () => {
-  const ok = { since: 0, changes: [{ isbn: DUNE, book: book(DUNE), updated: 1 }] };
+  const ok = { since: 0, changes: [{ isbn: DUNE, book: legacyBook(book(DUNE)), updated: 1 }] };
+  const current = {
+    version: 2,
+    since: 0,
+    changes: [{ v: 2, isbn: DUNE, book: book(DUNE), updated: 1 }],
+  };
   assert.ok(parse(ok));
+  assert.equal(parse(current)?.version, 2);
+  assert.ok(parse({ ...current, changes: [{ v: 2, isbn: DUNE, book: null, updated: 1 }] }));
   assert.ok(parse({ since: 0, changes: [{ isbn: DUNE, book: null, updated: 1 }] }));
+  assert.equal(parse({ ...current, version: 1 }), null);
+  assert.equal(parse({ ...current, version: 3 }), null);
+  assert.equal(parse({ since: 0, changes: [{ v: 1, isbn: DUNE, book: null, updated: 1 }] }), null);
   assert.equal(parse({ since: 0, changes: [{ isbn: DUNE, book: book(EMMA), updated: 1 }] }), null);
   assert.equal(parse({ since: -1, changes: [] }), null);
   assert.equal(parse({ since: 0, changes: [{ isbn: 'x', book: null, updated: 1 }] }), null);
   assert.equal(parse({ since: 0, changes: [{ isbn: DUNE, book: 'x', updated: 1 }] }), null);
   const many = Array.from({ length: MAX_CHANGES + 1 }, () => ok.changes[0]);
   assert.equal(parse({ since: 0, changes: many }), null);
+});
+
+test('store: v2 accepts upgrades and deletions, legacy cannot downgrade or delete it', () => {
+  const sql = store();
+  const old = (title: string) => legacyBook(book(DUNE, title));
+  assert.equal(apply(sql, [{ isbn: DUNE, book: old('one'), updated: 1 }]), 1);
+  assert.equal(apply(sql, [{ isbn: DUNE, book: old('legacy update'), updated: 2 }]), 1);
+  assert.equal(apply(sql, [{ v: 2, isbn: DUNE, book: book(DUNE, 'v2'), updated: 3 }]), 1);
+  assert.equal(apply(sql, [{ isbn: DUNE, book: old('downgrade'), updated: 4 }]), 0);
+  assert.equal(apply(sql, [{ isbn: DUNE, book: null, updated: 5 }]), 0);
+
+  const current = changedSince(sql, 0);
+  assert.equal(current.seq, 3); // refused changes take no sequence
+  assert.equal((current.changes[0]?.book as Book).title, 'v2');
+  assert.equal(apply(sql, [{ v: 2, isbn: DUNE, book: null, updated: 6 }]), 1);
+  assert.equal(changedSince(sql, 0).changes[0]?.book, null);
+  assert.equal(apply(sql, [{ isbn: DUNE, book: old('resurrect'), updated: 7 }]), 0);
+  assert.equal(changedSince(sql, 0).changes[0]?.book, null);
+
+  apply(sql, [{ isbn: EMMA, book: legacyBook(book(EMMA)), updated: 1 }]);
+  apply(sql, [{ isbn: EMMA, book: null, updated: 2 }]);
+  assert.equal(apply(sql, [{ isbn: EMMA, book: legacyBook(book(EMMA)), updated: 3 }]), 1);
+});
+
+test('store: legacy replies hide live v2 books, current replies include them', () => {
+  const sql = store();
+  apply(sql, [{ isbn: DUNE, book: legacyBook(book(DUNE)), updated: 1 }]);
+  apply(sql, [{ v: 2, isbn: EMMA, book: book(EMMA), updated: 2 }]);
+
+  const old = changedSince(sql, 0, undefined);
+  assert.equal(old.seq, 2);
+  assert.deepEqual(
+    old.changes.map(c => [c.isbn, c.v]),
+    [[DUNE, undefined]],
+  );
+  const current = changedSince(sql, 0);
+  assert.deepEqual(
+    current.changes.map(c => [c.isbn, c.v]),
+    [
+      [DUNE, 2],
+      [EMMA, 2],
+    ],
+  );
+
+  apply(sql, [{ v: 2, isbn: EMMA, book: null, updated: 3 }]);
+  const tombstone = changedSince(sql, 0, undefined).changes.find(c => c.isbn === EMMA);
+  assert.equal(tombstone?.book, null); // a deletion, not a hidden live book
+  assert.equal(tombstone?.v, undefined);
+  assert.equal(changedSince(sql, 0).changes.find(c => c.isbn === EMMA)?.v, 2);
 });
 
 /** Settings holding goals, written at updated. */
@@ -119,10 +184,10 @@ test('diff: changed and new books, and deletions; unchanged ones are not sent', 
   const read = withStatus(book(DUNE), 'read', '2026-02-02');
   const changes = diff([read], snapshot, 2);
   assert.deepEqual(
-    changes.map(c => [c.isbn, c.book?.status ?? null, c.updated]),
+    changes.map(c => [c.v, c.isbn, c.book?.status ?? null, c.updated]),
     [
-      [DUNE, 'read', 2],
-      [EMMA, null, 2],
+      [2, DUNE, 'read', 2],
+      [2, EMMA, null, 2],
     ],
   );
 });
@@ -130,12 +195,15 @@ test('diff: changed and new books, and deletions; unchanged ones are not sent', 
 test('received: others’ changes come in, echoes and edits made meanwhile do not', () => {
   const mine = [book(DUNE, 'mine')];
   const snapshot = recorded({ seq: 1, books: {} }, diff(mine, { seq: 0, books: {} }, 1));
-  const echo: Reply = { seq: 1, changes: [{ isbn: DUNE, book: book(DUNE, 'mine'), updated: 1 }] };
+  const echo: Reply = {
+    seq: 1,
+    changes: [{ v: 2, isbn: DUNE, book: book(DUNE, 'mine'), updated: 1 }],
+  };
   assert.equal(received(mine, snapshot, echo).books, null);
 
   const theirs: Change[] = [
-    { isbn: DUNE, book: book(DUNE, 'theirs'), updated: 5 },
-    { isbn: EMMA, book: book(EMMA, 'new'), updated: 6 },
+    { v: 2, isbn: DUNE, book: book(DUNE, 'theirs'), updated: 5 },
+    { v: 2, isbn: EMMA, book: book(EMMA, 'new'), updated: 6 },
   ];
   const r = received(mine, snapshot, { seq: 3, changes: theirs });
   assert.deepEqual(
@@ -150,8 +218,21 @@ test('received: others’ changes come in, echoes and edits made meanwhile do no
   assert.equal(kept.books, null);
   assert.equal(diff(edited, kept.snapshot, 9)[0]?.book?.title, 'edited meanwhile'); // sent next
 
-  const junk = { isbn: EMMA, book: { isbn: EMMA } as Book, updated: 7 };
+  const junk: Change = { v: 2, isbn: EMMA, book: { isbn: EMMA } as Book, updated: 7 };
   assert.equal(received(mine, snapshot, { seq: 4, changes: [junk] }).books, null);
+});
+
+test('received: an incoming legacy book migrates without bouncing back', () => {
+  const old = legacyBook(book(EMMA, 'Emma'));
+  const migrated = readBook(old);
+  assert.ok(migrated);
+  const reply: Reply = {
+    seq: 1,
+    changes: [{ v: 2, isbn: EMMA, book: old, updated: 1 }],
+  };
+  const r = received([], { seq: 0, books: {} }, reply);
+  assert.deepEqual(r.books, [migrated]);
+  assert.deepEqual(diff(r.books!, r.snapshot, 2), []);
 });
 
 /** A device: its shelf, goals and snapshot, syncing straight into sql. */

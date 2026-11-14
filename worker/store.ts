@@ -21,8 +21,10 @@ export type Sql = (query: string, ...params: (string | number | null)[]) => Row[
 export type Row = Record<string, unknown>;
 
 /** One book's change: the book as it now is, or null when it was deleted;
- * updated is when, in ms since 1970, by the clock of the device that made it. */
+ * updated is when, in ms since 1970, by the clock of the device that made it.
+ * Legacy clients leave v out; current clients send 2, including for deletions. */
 export interface Change {
+  v?: 2;
   isbn: string;
   book: object | null;
   updated: number;
@@ -42,6 +44,7 @@ export interface Settings {
 /** What a sync asks: the changes since seq it last saw, and its own,
  * with the settings when the device changed them. */
 export interface SyncRequest {
+  version?: 2;
   since: number;
   changes: Change[];
   settings?: Settings;
@@ -94,13 +97,20 @@ function parseSettings(value: unknown): Settings | null {
 /** The request in body (parsed JSON), or null when it is not one. A book
  * is checked only loosely: an object whose isbn is the change's. */
 export function parse(body: unknown): SyncRequest | null {
-  const r = body as { since?: unknown; changes?: unknown; settings?: unknown } | null;
+  const r = body as {
+    version?: unknown;
+    since?: unknown;
+    changes?: unknown;
+    settings?: unknown;
+  } | null;
   if (typeof r !== 'object' || r === null) return null;
+  if (r.version !== undefined && r.version !== 2) return null;
   if (!Number.isSafeInteger(r.since) || (r.since as number) < 0) return null;
   if (!Array.isArray(r.changes) || r.changes.length > MAX_CHANGES) return null;
   const valid = (c: Change) =>
     typeof c === 'object' &&
     c !== null &&
+    (c.v === undefined || c.v === 2) &&
     typeof c.isbn === 'string' &&
     ISBN.test(c.isbn) &&
     Number.isSafeInteger(c.updated) &&
@@ -109,6 +119,7 @@ export function parse(body: unknown): SyncRequest | null {
       (typeof c.book === 'object' && (c.book as { isbn?: unknown }).isbn === c.isbn));
   if (!r.changes.every(valid)) return null;
   const request: SyncRequest = { since: r.since as number, changes: r.changes as Change[] };
+  if (r.version === 2) request.version = 2;
   if (r.settings !== undefined) {
     const settings = parseSettings(r.settings);
     if (!settings) return null;
@@ -125,18 +136,29 @@ function lastSeq(sql: Sql): number {
   );
 }
 
+/** Whether stored book JSON (or a tombstone's version marker) is v2. */
+function isV2(data: unknown): boolean {
+  try {
+    const book = JSON.parse(String(data)) as { v?: unknown } | null;
+    return book?.v === 2;
+  } catch {
+    return false;
+  }
+}
+
 /** Keeps each change that is newer than the store's copy of its book;
- * says how many it kept. */
+ * says how many it kept. A legacy change can never overwrite or delete v2. */
 export function apply(sql: Sql, changes: Change[]): number {
   let seq = lastSeq(sql);
   let kept = 0;
   for (const c of changes) {
-    const had = sql('SELECT updated FROM books WHERE isbn = ?', c.isbn)[0];
+    const had = sql('SELECT updated, data FROM books WHERE isbn = ?', c.isbn)[0];
+    if (had && c.v === undefined && isV2(had.data)) continue;
     if (had && Number(had.updated) >= c.updated) continue; // ours is as new: keep it
     sql(
       'INSERT OR REPLACE INTO books (isbn, data, updated, deleted, seq) VALUES (?, ?, ?, ?, ?)',
       c.isbn,
-      c.book ? JSON.stringify(c.book) : '',
+      c.book ? JSON.stringify(c.book) : JSON.stringify({ v: c.v ?? 1 }),
       c.updated,
       c.book ? 0 : 1,
       ++seq,
@@ -161,19 +183,28 @@ export function applySettings(sql: Sql, settings: Settings): boolean {
 }
 
 /** The store's last seq, every book changed after since, oldest change
- * first, and the settings if they changed after since. */
-export function changedSince(sql: Sql, since: number): SyncReply {
+ * first, and the settings if they changed after since. With no third argument
+ * the reply is v2; an explicitly undefined version is a legacy request. Legacy
+ * replies omit live v2 books, but keep tombstones: a deletion travels to old
+ * devices too. A legacy change cannot overwrite a v2 book or its tombstone. */
+export function changedSince(sql: Sql, since: number, version?: 2): SyncReply {
+  const legacy = arguments.length > 2 && version === undefined;
   const seq = lastSeq(sql);
   if (since > seq) since = 0; // a store that lost its rows: start again
   const rows = sql(
     'SELECT isbn, data, updated, deleted FROM books WHERE seq > ? ORDER BY seq',
     since,
   );
-  const changes = rows.map(r => ({
-    isbn: String(r.isbn),
-    book: r.deleted ? null : (JSON.parse(String(r.data)) as object),
-    updated: Number(r.updated),
-  }));
+  const changes = rows.flatMap(r => {
+    if (legacy && !r.deleted && isV2(r.data)) return [];
+    const change: Change = {
+      isbn: String(r.isbn),
+      book: r.deleted ? null : (JSON.parse(String(r.data)) as object),
+      updated: Number(r.updated),
+    };
+    if (!legacy) change.v = 2;
+    return [change];
+  });
   const row = sql('SELECT data, updated, seq FROM settings WHERE id = 1')[0];
   if (!row || Number(row.seq) <= since) return { seq, changes };
   const data = JSON.parse(String(row.data)) as SettingsData;

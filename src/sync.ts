@@ -23,15 +23,16 @@
  * whose clocks are far off (their changes lose or win unfairly). */
 import { signal, effect } from './spark/index.js';
 import type { Getter, Setter } from './spark/index.js';
-import { isBook, merge } from './shelf.ts';
+import { readBook, merge } from './shelf.ts';
 import type { Book } from './shelf.ts';
 
 /** Where sync is: not on, talking to the server, done, or unable. */
 export type SyncStatus = 'off' | 'syncing' | 'synced' | 'offline' | 'error';
 
 /** One book's change: the book, or null when deleted; updated is when, in
- * ms, by the clock of the device that made it. */
+ * ms, by the clock of the device that made it. v is the sync model version. */
 export interface Change {
+  v: 2;
   isbn: string;
   book: Book | null;
   updated: number;
@@ -119,10 +120,11 @@ export function diff(books: Book[], snapshot: Snapshot, now: number): Change[] {
   for (const book of [...books].reverse()) {
     here.add(book.isbn);
     if (JSON.stringify(book) !== snapshot.books[book.isbn]?.json)
-      changes.push({ isbn: book.isbn, book, updated: now });
+      changes.push({ v: 2, isbn: book.isbn, book, updated: now });
   }
   for (const [isbn, kept] of Object.entries(snapshot.books))
-    if (kept.json !== null && !here.has(isbn)) changes.push({ isbn, book: null, updated: now });
+    if (kept.json !== null && !here.has(isbn))
+      changes.push({ v: 2, isbn, book: null, updated: now });
   return changes;
 }
 
@@ -164,8 +166,18 @@ export function recorded(
   return next;
 }
 
+/** Incoming books in the current model, with invalid ones left out. Keeping
+ * the migrated JSON in the snapshot stops a legacy book bouncing back. */
+function readChanges(changes: Change[]): Change[] {
+  return changes.flatMap(c => {
+    if (c.book === null) return [{ ...c, v: 2 as const }];
+    const book = readBook(c.book);
+    return book ? [{ ...c, v: 2 as const, book }] : [];
+  });
+}
+
 /** The shelf, goals and snapshot once the server's reply is in. The
- * snapshot takes every change; the shelf takes those to books it hasn't
+ * snapshot takes every valid change; the shelf takes those to books it hasn't
  * changed since the snapshot, and the goals the settings if unchanged
  * here (own changes go next time, and win, being newer). books and
  * goals are null when they stay as they were. */
@@ -178,16 +190,17 @@ export function received(
   const shelf = new Map(books.map(b => [b.isbn, JSON.stringify(b)]));
   const taken: Book[] = [];
   const gone = new Set<string>();
-  for (const c of reply.changes) {
+  const changes = readChanges(reply.changes);
+  for (const c of changes) {
     const was = snapshot.books[c.isbn]?.json ?? null;
     const json = c.book && JSON.stringify(c.book);
     if (json === was) continue; // nothing new: often this device's own change
     if ((shelf.get(c.isbn) ?? null) !== was) continue; // changed here meanwhile
     if (c.book === null) gone.add(c.isbn);
-    else if (isBook(c.book)) taken.push(c.book);
+    else taken.push(c.book);
   }
   const theirs = isSettings(reply.settings) ? reply.settings : null;
-  const next = recorded(snapshot, reply.changes, reply.seq, theirs);
+  const next = recorded(snapshot, changes, reply.seq, theirs);
   const took =
     theirs &&
     next.settings?.json !== (snapshot.settings?.json ?? null) && // not an echo
@@ -243,7 +256,7 @@ async function post(
   const response = await fetch('/api/shelf/' + code + '/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ since, changes, settings: settings ?? undefined }),
+    body: JSON.stringify({ version: 2, since, changes, settings: settings ?? undefined }),
   });
   if (!response.ok) throw Error(await response.text());
   return (await response.json()) as Reply;
@@ -379,9 +392,10 @@ export async function join(text: string) {
     setStatus(offline ? 'offline' : 'error');
     throw Error(offline ? "Couldn't reach the shelf: are you online?" : 'No shelf has that code.');
   }
-  const theirs = reply.changes.flatMap(c => (c.book && isBook(c.book) ? [c.book] : []));
+  const changes = readChanges(reply.changes);
+  const theirs = changes.flatMap(c => (c.book ? [c.book] : []));
   const settings = isSettings(reply.settings) ? reply.settings : null;
-  start(shelf, recorded({ seq: 0, books: {} }, reply.changes, reply.seq, settings));
+  start(shelf, recorded({ seq: 0, books: {} }, changes, reply.seq, settings));
   setBooks(merge(books(), newestFirst(theirs)));
   if (settings) setGoals(settings.data.goals);
   await sync();

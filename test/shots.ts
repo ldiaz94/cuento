@@ -5,7 +5,7 @@
 import { chromium } from 'playwright-core';
 import { serve, origin } from './serve.ts';
 
-/** The shelf pictured: one book of each status, without covers. */
+/** The shelf pictured: reading, read and wanted books, without covers. */
 const BOOKS = [
   ['9780306406157', 'The Left Hand of Darkness', 'Ursula K. Le Guin', 'reading', 0, ''],
   ['9780804429573', 'Pedro Páramo', 'Juan Rulfo', 'read', 5, 'Comala.'],
@@ -18,12 +18,21 @@ const BOOKS = [
   cover: '',
   pages: null,
   published: '',
+  v: 2,
   status,
   added: '2026-10-01',
+  acquired: status === 'want' ? '' : '2026-10-01',
   started: status === 'want' ? '' : '2026-10-02',
   finished: status === 'read' ? '2026-10-20' : '',
+  readings:
+    status === 'want'
+      ? []
+      : status === 'read'
+        ? [{ started: '2026-10-02', finished: '2026-10-20' }]
+        : [{ started: '2026-10-02', finished: '' }],
   rating,
   notes,
+  upNext: false,
 }));
 
 const server = await serve();
