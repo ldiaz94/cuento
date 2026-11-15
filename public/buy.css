@@ -1,0 +1,362 @@
+/* Where to buy (src/buyView.ts): a card for each of the reader's stores,
+ * with the book, the store and its price, or the store's search. A phone
+ * first: under 380px wide the price sits under the title; wider, it takes
+ * the card's right. Uses style.css's colours, fonts and radius; light and
+ * dark follow them. */
+
+.buy {
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+}
+.buy-toggle {
+  justify-self: start;
+  gap: 8px;
+  font-weight: 600;
+}
+.buy-toggle[aria-expanded='true'] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--ink);
+}
+.buy-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wtb {
+  container-type: inline-size;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  animation: wtb-in 0.3s var(--glide) both;
+}
+@keyframes wtb-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.wtb-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A card, the book found at a store: the cover, then the store, the title and a line about the edition;
+ * the price (or Search) under them, or to their right when there is room. */
+.wtb-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-areas:
+    'cover body'
+    'cover deal';
+  column-gap: 14px;
+  row-gap: 6px;
+  align-items: center;
+  min-height: 96px;
+  padding: 12px 14px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 1px 2px #3a2a1a0d;
+  transition:
+    transform 0.15s var(--glide),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+@container (min-width: 380px) {
+  .wtb-card {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-areas: 'cover body deal';
+  }
+  .wtb-deal {
+    justify-items: end;
+    text-align: right;
+  }
+}
+@media (hover: hover) {
+  .wtb-card:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+}
+.wtb-card:active {
+  transform: scale(0.985);
+}
+.wtb-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.wtb-cover {
+  grid-area: cover;
+  align-self: start;
+  display: block;
+  width: 52px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 3px 6px 6px 3px;
+  background: var(--line);
+  box-shadow:
+    inset 3px 0 0 #0000001f,
+    0 2px 6px #00000026;
+}
+.wtb-cover img,
+.wtb-spine {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wtb-spine {
+  background:
+    linear-gradient(90deg, #00000033 0 8%, transparent 8% 92%, #0000001a 92%),
+    var(--cloth, var(--accent));
+}
+
+.wtb-body {
+  grid-area: body;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.wtb-store {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.wtb-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.wtb-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.wtb-deal {
+  grid-area: deal;
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  min-width: 0;
+}
+.wtb-price {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+.wtb-was {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wtb-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* While the price comes: a shimmer where it will be. */
+.wtb-skel {
+  display: block;
+  width: 84px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(
+      90deg,
+      transparent 0,
+      color-mix(in srgb, var(--card) 70%, transparent) 50%,
+      transparent 100%
+    )
+    var(--line);
+  background-size: 200% 100%;
+  animation: wtb-shimmer 1.2s linear infinite;
+}
+.wtb-skel-line {
+  width: 64%;
+  max-width: 120px;
+  height: 12px;
+  margin-top: 4px;
+}
+@keyframes wtb-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.wtb-status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Stores with no price to show: tiles, two to a row when there is room. */
+.wtb-searches {
+  display: grid;
+  gap: 6px;
+}
+.wtb-searches h4,
+.wtb-near h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.wtb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wtb-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 52px;
+  height: 100%;
+  padding: 8px 12px 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform 0.15s var(--glide),
+    border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) {
+  .wtb-tile:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  }
+}
+.wtb-tile:active {
+  transform: scale(0.98);
+}
+.wtb-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.wtb-tile-name {
+  display: grid;
+  min-width: 0;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.wtb-tile-name small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.wtb-tile-go {
+  flex: none;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* More stores, and nearby searches: quiet lists of links. */
+.wtb-more summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  width: fit-content;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.wtb-more summary::-webkit-details-marker {
+  display: none;
+}
+.wtb-more summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s var(--glide);
+}
+.wtb-more[open] summary::after {
+  transform: translateY(1px) rotate(-135deg);
+}
+.wtb-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wtb-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.wtb-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Words for screen readers alone. */
+.wtb .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

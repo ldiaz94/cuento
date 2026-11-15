@@ -11,7 +11,8 @@
  *
  * Accounts (passkeys that own a shelf, /api/auth/* and /api/me) are
  * auth.ts's; reminders (Web Push, /api/push/* and the quarter-hour cron)
- * are notify.ts's. Leaves out rate limits and deleting a shelf. */
+ * are notify.ts's; Where to buy's prices (/api/prices) are shop.ts's.
+ * Leaves out rate limits and deleting a shelf. */
 import { DurableObject } from 'cloudflare:workers';
 import { setUp, parse, apply, applySettings, changedSince } from './store.ts';
 import type { Sql, SyncRequest, SyncReply } from './store.ts';
@@ -19,6 +20,8 @@ import { auth } from './auth.ts';
 export { Accounts } from './auth.ts';
 import { push, sendDue } from './notify.ts';
 export { Reminders } from './notify.ts';
+import { shop } from './shop.ts';
+export { Prices } from './shop.ts';
 
 /** A sync code: 26 characters of Crockford's base32, upper case. */
 const ROUTE = /^\/api\/shelf\/([0-9A-HJKMNP-TV-Z]{26})\/(sync|live)$/;
@@ -88,6 +91,7 @@ export default {
     if (path.startsWith('/api/auth/') || path === '/api/me' || path.startsWith('/api/me/'))
       return auth(request, env, path);
     if (path.startsWith('/api/push/')) return push(request, env, path);
+    if (path === '/api/prices') return shop(request, env);
     const route = ROUTE.exec(path);
     if (!route) return answer(404, 'No such shelf.');
     const [, code, what] = route as unknown as [string, string, string];

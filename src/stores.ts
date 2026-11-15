@@ -2,13 +2,16 @@
  * and the shopping preferences a reader keeps (format, favourite stores,
  * location).
  *
- * Every store knows how to make a search URL, never a product URL, so nothing
- * here claims a price or that a book is in stock. Only search patterns
- * that are stable and public are used.
+ * Every store knows how to make a search URL. A few also have a public,
+ * published API that cuento's server asks for the book's price (priced:
+ * worker/prices.ts); the rest are searches only, and nothing here claims a
+ * price or that a book is in stock. Only search patterns that are stable
+ * and public are used.
  *
- * The location is typed by the reader and stays on this device: it is never
- * sent anywhere by cuento, and sync must never carry it. Format and stores
- * may sync later; the location may not.
+ * All three sync with the reader's shelf (sync.ts), the location too: it
+ * travels only to the reader's own shelf on cuento's server, never to a
+ * store or the price API (/api/prices takes only the ISBN, store ids and
+ * region), and is only ever put in a link the reader opens.
  * Depends on nothing. Turning stores into links for a book is buy.ts's. */
 
 /** How a book is bought. */
@@ -20,16 +23,19 @@ export interface ShoppingPrefs {
   format: '' | Format;
   /** Catalogue ids or custom names, in the reader's order. */
   stores: string[];
-  /** Free text the reader typed, or ''. Device-only: never synced. */
+  /** Free text the reader typed, or ''. Synced with the shelf; never sent to a store or /api/prices. */
   location: string;
 }
 
 /** No preferences at all. */
 export const NO_PREFS: ShoppingPrefs = { format: '', stores: [], location: '' };
 
-const MAX_STORES = 20;
-const MAX_NAME = 60;
-const MAX_LOCATION = 200;
+/** The most favourite stores kept (the server's limit too, worker/store.ts). */
+export const MAX_STORES = 20;
+/** The longest store name kept. */
+export const MAX_NAME = 60;
+/** The longest location kept. */
+export const MAX_LOCATION = 200;
 
 /** Preferences from stored or synced JSON, dropping whatever is not usable. */
 export function readPrefs(value: unknown): ShoppingPrefs {
@@ -65,6 +71,8 @@ export interface Store {
   formats: Format[];
   /** True when the store's search takes an ISBN. */
   byIsbn: boolean;
+  /** True when cuento's server can ask the store's public API for a price (worker/prices.ts). */
+  priced?: boolean;
   /** An https: search URL for the book. */
   search(q: Query): string;
   /** An https: search for the store's own shops near a place, when it has shops. */
@@ -161,6 +169,7 @@ export const STORES: readonly Store[] = [
     // A VTEX site: its search is the text as the path, repeated as _q. Searched by title and author.
     ...shop('gandhi', 'Gandhi', ['MX'], BOTH, '', true),
     byIsbn: false,
+    priced: true,
     search: q => {
       const t = enc(term(q, false));
       return `https://www.gandhi.com.mx/${t}?_q=${t}&map=ft`;
@@ -174,6 +183,12 @@ export const STORES: readonly Store[] = [
     ['ebook'],
     'https://play.google.com/store/search?c=books&q=',
   ),
+  // Apple Books has no web search; its prices come from the iTunes Search API.
+  {
+    ...shop('apple-books', 'Apple Books', ['*'], ['ebook'], ''),
+    priced: true,
+    search: q => siteSearch('books.apple.com', q),
+  },
 ];
 
 /** The ISO region of a locale: 'en-GB' gives 'GB'; '' when it names none. */

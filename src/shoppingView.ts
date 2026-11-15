@@ -3,18 +3,20 @@
  *
  *   Settings:  Format [none|print|ebook] ── Favourite stores (+ suggestions,
  *              custom, up/down/remove) ── City or postcode
- *   Details:   [Where to buy] ── online search links, then nearby ones, and
- *              the disclaimer
+ *   Details:   [Where to buy] ── the reader's stores as cards, with prices
+ *              where a store has an API (buyView.ts)
  *
- * The preferences live in localStorage under their own key, on this device
- * only: not exported, not synced (the location least of all). Links open in
- * a new tab. Depends on spark, shelf.ts, stores.ts and buy.ts. Leaves out
- * prices, stock and GPS. */
+ * The preferences live in localStorage under their own key, and sync with
+ * the shelf (all three, the location too: app.ts hands them to sync.ts),
+ * a change from another device redrawing both. They are not exported, and
+ * the location is never sent to a store or /api/prices. Links open in a
+ * new tab. Depends on spark, shelf.ts, stores.ts and buyView.ts. Leaves
+ * out GPS. */
 import { signal, html } from './spark/index.js';
 import type { Book } from './shelf.ts';
 import { readPrefs, regionOf, storeNamed, suggestedStores } from './stores.ts';
 import type { ShoppingPrefs } from './stores.ts';
-import { whereToBuy, DISCLAIMER } from './buy.ts';
+import { whereToBuy } from './buyView.ts';
 
 /** The localStorage key the preferences are kept under. */
 export const SHOPPING_KEY = 'cuento.shopping';
@@ -29,16 +31,23 @@ function load(): ShoppingPrefs {
 }
 
 const [prefs, setPrefs] = signal<ShoppingPrefs>(load());
+/** The preferences, live (for sync.ts). */
+export { prefs as shoppingPrefs };
 
-/** Changes some of the preferences and keeps them. */
-function change(some: Partial<ShoppingPrefs>) {
-  const next = readPrefs({ ...prefs(), ...some });
+/** Replaces the preferences and keeps them (a change here, or one synced). */
+export function keepShoppingPrefs(value: ShoppingPrefs) {
+  const next = readPrefs(value);
   setPrefs(next);
   try {
     localStorage.setItem(SHOPPING_KEY, JSON.stringify(next));
   } catch {
     // Not kept this time; still in use until the page closes.
   }
+}
+
+/** Changes some of the preferences and keeps them. */
+function change(some: Partial<ShoppingPrefs>) {
+  keepShoppingPrefs({ ...prefs(), ...some });
 }
 
 /** The reader's region, from the browser's language. */
@@ -88,7 +97,10 @@ export function shoppingSection(): Node {
       );
   return html`<section class="shopping">
     <h3>Shopping</h3>
-    <p class="hint">Used by Where to buy on books you want. All optional.</p>
+    <p class="hint">
+      Where to buy shows these stores on books you want, or your region’s when there are none. All
+      optional.
+    </p>
     <div class="shop-format" role="radiogroup" aria-label="Format">
       ${FORMATS.map(
         ([value, label]) =>
@@ -143,44 +155,13 @@ export function shoppingSection(): Node {
       />
     </label>
     <p class="hint">
-      For nearby searches. It stays on this device: it isn’t exported or synced, and cuento never
-      looks it up.
+      For nearby searches. It syncs with your shelf, but isn’t exported, and cuento never looks it
+      up or sends it to a store.
     </p>
   </section>`;
 }
 
-/** Where to buy a Want book: a button revealing search links. Nothing for any other status. */
+/** Where to buy a Want book: a button revealing its stores. Nothing for any other status. */
 export function whereToBuySection(book: () => Book): Node {
-  const [shown, setShown] = signal(false);
-  const list = () => {
-    const links = whereToBuy(book(), prefs(), region());
-    const group = (kind: 'online' | 'nearby') =>
-      links
-        .filter(l => l.kind === kind)
-        .map(
-          l =>
-            html`<li>
-              <a href=${l.url} target="_blank" rel="noopener noreferrer"
-                >${l.label}${l.format ? ' (' + l.format + ')' : ''}</a
-              >
-            </li>`,
-        );
-    return html`<ul class="buy-links">
-        ${group('online')} ${group('nearby')}
-      </ul>
-      <p class="hint">${DISCLAIMER}</p>`;
-  };
-  return html`<div class="buy">
-    ${() =>
-      book().status === 'want' &&
-      html`<button
-          type="button"
-          class="buy-toggle"
-          aria-expanded=${() => String(shown())}
-          @click=${() => setShown(!shown())}
-        >
-          Where to buy
-        </button>
-        ${() => shown() && list()}`}
-  </div>`;
+  return whereToBuy(book, prefs, region);
 }

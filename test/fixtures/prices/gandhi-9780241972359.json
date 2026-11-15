@@ -1,0 +1,513 @@
+[
+  {
+    "productId": "2243860",
+    "productName": "One Hundred Years of Solitude",
+    "brand": "Gandhi",
+    "brandId": 2000004,
+    "brandImageUrl": null,
+    "linkText": "one-hundred-years-of-solitude-9780241972359",
+    "productReference": "9780241972359",
+    "productReferenceCode": "9780241972359",
+    "categoryId": "1",
+    "productTitle": "One Hundred Years of Solitude",
+    "metaTagDescription": null,
+    "releaseDate": "2026-09-10T00:00:00Z",
+    "clusterHighlights": {},
+    "productClusters": {
+      "400": "Gabriel García Márquez",
+      "679": "Ficción  Parte 1 - Catálogo Dinámico Gandhi.com",
+      "805": "feed instock v2 7"
+    },
+    "searchableClusters": {},
+    "categories": ["/Libros/"],
+    "categoriesIds": ["/1/"],
+    "link": "https://www.gandhi.com.mx/one-hundred-years-of-solitude-9780241972359/p",
+    "Edición": ["1a Edición"],
+    "Año": ["2017"],
+    "SinopsisParent": [
+      "9780241972359_One Hundred Years of Solitude is the story of the village of Macondo and the Buendia family (all of whom have disturbingly and probably intentionally similar names). Macondo is in an unspecified South American country (assumed to be the Colombia of the author, Gabriel Garcia Márquez). For most of the novel, Macondo is isolated from the rest of the world (hence the title); eventually the outside breaks in (in the form of a railroad and a banana company) and everything heads off for the netherworld in the proverbial handbasket. The Buendia family gets increasingly weird and ends with incest."
+    ],
+    "MarcaParent": ["9780241972359_Penguin Books"],
+    "Descripcion del producto": [
+      "One Hundred Years of Solitude is the story of the village of Macondo and the Buendia family (all of whom have disturbingly and probably intentionally similar names). Macondo is in an unspecified South American country (assumed to be the Colombia of the author, Gabriel Garcia Márquez). For most of the novel, Macondo is isolated from the rest of the world (hence the title); eventually the outside breaks in (in the form of a railroad and a banana company) and everything heads off for the netherworld in the proverbial handbasket. The Buendia family gets increasingly weird and ends with incest."
+    ],
+    "TiposProducto": ["9780241972359_9780241972359"],
+    "Titulo": ["One Hundred Years of Solitude"],
+    "Dimensiones": ["0.0000x0.0000x0.0000"],
+    "Autor": ["Gabriel García Márquez"],
+    "Idioma": ["Inglés"],
+    "País": ["Reino Unido"],
+    "Generales": [
+      "Edición",
+      "Año",
+      "SinopsisParent",
+      "MarcaParent",
+      "Descripcion del producto",
+      "TiposProducto",
+      "Titulo",
+      "Dimensiones",
+      "Autor",
+      "Idioma",
+      "País"
+    ],
+    "Número de páginas": ["422"],
+    "Ancho": ["0.0000"],
+    "Alto": ["0.0000"],
+    "Peso": ["0.0000"],
+    "Grueso": ["0.0000"],
+    "Editorial": ["Penguin Books"],
+    "Físicos": ["Número de páginas", "Ancho", "Alto", "Peso", "Grueso", "Editorial"],
+    "allSpecifications": [
+      "Edición",
+      "Año",
+      "SinopsisParent",
+      "MarcaParent",
+      "Descripcion del producto",
+      "TiposProducto",
+      "Titulo",
+      "Dimensiones",
+      "Autor",
+      "Idioma",
+      "País",
+      "Número de páginas",
+      "Ancho",
+      "Alto",
+      "Peso",
+      "Grueso",
+      "Editorial"
+    ],
+    "allSpecificationsGroups": ["Generales", "Físicos"],
+    "description": "One Hundred Years of Solitude is the story of the village of Macondo and the Buendia family (all of whom have disturbingly and probably intentionally similar names). Macondo is in an unspecified South American country (assumed to be the Colombia of the author, Gabriel Garcia Márquez). For most of the novel, Macondo is isolated from the rest of the world (hence the title); eventually the outside breaks in (in the form of a railroad and a banana company) and everything heads off for the netherworld in the proverbial handbasket. The Buendia family gets increasingly weird and ends with incest.",
+    "items": [
+      {
+        "itemId": "2067704",
+        "name": "One Hundred Years of Solitude",
+        "nameComplete": "One Hundred Years of Solitude",
+        "complementName": "One Hundred Years of Solitude",
+        "ean": "9780241972359",
+        "referenceId": [{ "Key": "RefId", "Value": "9780241972359" }],
+        "measurementUnit": "un",
+        "unitMultiplier": 1.0,
+        "modalType": null,
+        "isKit": false,
+        "images": [
+          {
+            "imageId": "11621767",
+            "imageLabel": "Vista Frontal",
+            "imageTag": "<img src=\"~/arquivos/ids/11621767-#width#-#height#/Imagen.jpg?v=639246277519570000\" width=\"#width#\" height=\"#height#\" alt=\"Imagen\" id=\"\" />",
+            "imageUrl": "https://gandhi.vteximg.com.br/arquivos/ids/11621767/Imagen.jpg?v=639246277519570000",
+            "imageText": "Imagen",
+            "imageLastModified": "2026-09-10T09:02:31.9570000Z"
+          }
+        ],
+        "PrefijoTipo": ["FI"],
+        "Tipo": ["Tapa blanda"],
+        "variations": ["PrefijoTipo", "Tipo"],
+        "sellers": [
+          {
+            "sellerId": "1",
+            "sellerName": "Gandhi",
+            "addToCartLink": "https://www.gandhi.com.mx/checkout/cart/add?sku=2067704&qty=1&seller=1&sc=1&price=14900&cv=_&sc=1",
+            "sellerDefault": true,
+            "commertialOffer": {
+              "DeliverySlaSamplesPerRegion": { "0": { "DeliverySlaPerTypes": [], "Region": null } },
+              "Installments": [
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "American Express",
+                  "PaymentSystemGroupName": "creditCardPaymentGroup",
+                  "Name": "American Express à vista"
+                },
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "Visa",
+                  "PaymentSystemGroupName": "creditCardPaymentGroup",
+                  "Name": "Visa à vista"
+                },
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "Mastercard",
+                  "PaymentSystemGroupName": "creditCardPaymentGroup",
+                  "Name": "Mastercard à vista"
+                },
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "PayPal",
+                  "PaymentSystemGroupName": "payPalPaymentGroup",
+                  "Name": "PayPal à vista"
+                },
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "Vale",
+                  "PaymentSystemGroupName": "giftCardPaymentGroup",
+                  "Name": "Vale à vista"
+                },
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "Aplazo Payment",
+                  "PaymentSystemGroupName": "aplazoPaymentGroup",
+                  "Name": "Aplazo Payment à vista"
+                },
+                {
+                  "Value": 149.0,
+                  "InterestRate": 0.0,
+                  "TotalValuePlusInterestRate": 149.0,
+                  "NumberOfInstallments": 1,
+                  "PaymentSystemName": "Pago en efectivo",
+                  "PaymentSystemGroupName": "custom201PaymentGroupPaymentGroup",
+                  "Name": "Pago en efectivo à vista"
+                }
+              ],
+              "DiscountHighLight": [],
+              "GiftSkuIds": [],
+              "Teasers": [],
+              "PromotionTeasers": [],
+              "BuyTogether": [],
+              "ItemMetadataAttachment": [],
+              "Price": 149.0,
+              "ListPrice": 260.0,
+              "PriceWithoutDiscount": 149.0,
+              "FullSellingPrice": 149.0,
+              "PriceToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjY4YmY4M2EyLTgwZDAtNDEyOS05NzY5LWM5MGU2NGJlZTJmZiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InByaWNlIjoxNDkwMCwicHJpY2VXaXRob3V0RGlzY291bnQiOjE0OTAwLCJzZWxsZXIiOiIxIiwiaWQiOiIyMDY3NzA0IiwiYWNjb3VudE5hbWUiOiJnYW5kaGkiLCJzYWxlc0NoYW5uZWwiOiIxIn0sImV4cCI6MTc5NDc3NTE2NCwiaWF0IjoxNzk0NzczMzY0LCJqdGkiOiJhYjJmYzNmMS02NjM0LTQxZDAtODM5ZC1kM2E4YTZmZjVlY2EiLCJpc3MiOiJzZXNzaW9uL2RhdGEtc2lnbmVyIn0.EZvRD3G3wcJHr75_YAZTKTvR0w-IEYrGkemOYsb4ZViuUmL5HvIsPKQiuIJEEsP29mQm6InASj1z0neFihmBIQ",
+              "RewardValue": 0.0,
+              "PriceValidUntil": "2027-11-15T20:09:13Z",
+              "AvailableQuantity": 1,
+              "IsAvailable": true,
+              "Tax": 0.0,
+              "DeliverySlaSamples": [{ "DeliverySlaPerTypes": [], "Region": null }],
+              "GetInfoErrorMessage": null,
+              "CacheVersionUsedToCallCheckout": "_",
+              "PaymentOptions": {
+                "installmentOptions": [
+                  {
+                    "paymentSystem": "1",
+                    "bin": null,
+                    "paymentName": "American Express",
+                    "paymentGroupName": "creditCardPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "paymentSystem": "2",
+                    "bin": null,
+                    "paymentName": "Visa",
+                    "paymentGroupName": "creditCardPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "paymentSystem": "4",
+                    "bin": null,
+                    "paymentName": "Mastercard",
+                    "paymentGroupName": "creditCardPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "paymentSystem": "12",
+                    "bin": null,
+                    "paymentName": "PayPal",
+                    "paymentGroupName": "payPalPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "paymentSystem": "16",
+                    "bin": null,
+                    "paymentName": "Vale",
+                    "paymentGroupName": "giftCardPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "paymentSystem": "174",
+                    "bin": null,
+                    "paymentName": "Aplazo Payment",
+                    "paymentGroupName": "aplazoPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "paymentSystem": "201",
+                    "bin": null,
+                    "paymentName": "Pago en efectivo",
+                    "paymentGroupName": "custom201PaymentGroupPaymentGroup",
+                    "value": 14900,
+                    "installments": [
+                      {
+                        "count": 1,
+                        "hasInterestRate": false,
+                        "interestRate": 0,
+                        "value": 14900,
+                        "total": 14900,
+                        "sellerMerchantInstallments": [
+                          {
+                            "id": "GANDHI",
+                            "count": 1,
+                            "hasInterestRate": false,
+                            "interestRate": 0,
+                            "value": 14900,
+                            "total": 14900
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "paymentSystems": [
+                  {
+                    "id": 12,
+                    "name": "PayPal",
+                    "groupName": "payPalPaymentGroup",
+                    "validator": null,
+                    "stringId": "12",
+                    "template": "payPalPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": false,
+                    "description": null,
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T19:52:49.4457873Z",
+                    "availablePayments": null
+                  },
+                  {
+                    "id": 201,
+                    "name": "Pago en efectivo",
+                    "groupName": "custom201PaymentGroupPaymentGroup",
+                    "validator": null,
+                    "stringId": "201",
+                    "template": "custom201PaymentGroupPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": true,
+                    "description": "Pago en efectivo",
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T20:02:49.4457875Z",
+                    "availablePayments": null
+                  },
+                  {
+                    "id": 174,
+                    "name": "Aplazo Payment",
+                    "groupName": "aplazoPaymentGroup",
+                    "validator": null,
+                    "stringId": "174",
+                    "template": "aplazoPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": false,
+                    "description": null,
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T19:52:49.4457877Z",
+                    "availablePayments": null
+                  },
+                  {
+                    "id": 1,
+                    "name": "American Express",
+                    "groupName": "creditCardPaymentGroup",
+                    "validator": null,
+                    "stringId": "1",
+                    "template": "creditCardPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": false,
+                    "description": null,
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T19:52:49.445788Z",
+                    "availablePayments": null
+                  },
+                  {
+                    "id": 2,
+                    "name": "Visa",
+                    "groupName": "creditCardPaymentGroup",
+                    "validator": null,
+                    "stringId": "2",
+                    "template": "creditCardPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": false,
+                    "description": null,
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T19:52:49.4457881Z",
+                    "availablePayments": null
+                  },
+                  {
+                    "id": 4,
+                    "name": "Mastercard",
+                    "groupName": "creditCardPaymentGroup",
+                    "validator": null,
+                    "stringId": "4",
+                    "template": "creditCardPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": false,
+                    "description": null,
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T19:52:49.4457884Z",
+                    "availablePayments": null
+                  },
+                  {
+                    "id": 16,
+                    "name": "Vale",
+                    "groupName": "giftCardPaymentGroup",
+                    "validator": null,
+                    "stringId": "16",
+                    "template": "giftCardPaymentGroup-template",
+                    "requiresDocument": false,
+                    "isCustom": false,
+                    "description": null,
+                    "requiresAuthentication": false,
+                    "dueDate": "2026-11-22T19:52:49.4457886Z",
+                    "availablePayments": null
+                  }
+                ],
+                "payments": [],
+                "giftCards": [],
+                "giftCardMessages": [],
+                "availableAccounts": [],
+                "availableTokens": []
+              }
+            }
+          }
+        ],
+        "Videos": [],
+        "estimatedDateArrival": null
+      }
+    ],
+    "skuSpecifications": [
+      {
+        "field": {
+          "id": 59,
+          "name": "PrefijoTipo",
+          "isActive": true,
+          "position": 1,
+          "type": "Combo"
+        },
+        "values": [{ "id": "524", "name": "FI", "position": 1 }]
+      },
+      {
+        "field": { "id": 50, "name": "Tipo", "isActive": true, "position": 3, "type": "Combo" },
+        "values": [{ "id": "76", "name": "Tapa blanda", "position": 4 }]
+      }
+    ]
+  }
+]

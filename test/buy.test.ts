@@ -1,9 +1,11 @@
-/* Where to buy and the store catalogue: encoding, ISBN or title search, the
- * order of favourites and formats, custom stores, nearby links only with a
- * location, regions, and tolerant reading of preferences. */
+/* Where to buy and the store catalogue: which stores a book is shown at
+ * (favourites only, else the region's, in a preferred format), More
+ * stores, encoding, ISBN or title search, custom stores, nearby links only
+ * with a location, the price query (nothing typed in it), regions, and
+ * tolerant reading of preferences. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { whereToBuy, DISCLAIMER } from '../src/buy.ts';
+import { shopsFor, nearby, priceQuery, NOTE } from '../src/buy.ts';
 import {
   NO_PREFS,
   STORES,
@@ -34,18 +36,59 @@ const book: Book = {
   upNext: false,
 };
 const prefs = (p: Partial<ShoppingPrefs>): ShoppingPrefs => ({ ...NO_PREFS, ...p });
-const ids = (links: { store: string }[]) => links.map(l => l.store);
+const ids = (shops: { id: string }[]) => shops.map(s => s.id);
+const shown = (p: ShoppingPrefs, region: string, b = book) => shopsFor(b, p, region).shown;
+const search = (id: string, b = book) => shown(prefs({ stores: [id] }), 'US', b)[0]!.search;
 
-test('every link is https and every store has a unique id', () => {
-  const links = whereToBuy(book, prefs({ stores: ['My Shop'], location: 'Zürich & co' }), 'ES');
-  for (const l of links) assert.match(l.url, /^https:\/\//);
+test('every search is https, every store has a unique id, and the note is honest', () => {
+  const p = prefs({ stores: ['My Shop', 'kobo'], location: 'Zürich & co' });
+  const { shown: s, more } = shopsFor(book, p, 'ES');
+  for (const shop of [...s, ...more]) assert.match(shop.search, /^https:\/\//);
+  for (const l of nearby(book, p, s, 'ES')) assert.match(l.url, /^https:\/\//);
   assert.equal(new Set(STORES.map(s => s.id)).size, STORES.length);
-  assert.match(DISCLAIMER, /not prices/);
+  assert.match(NOTE, /from each store/);
+  assert.match(NOTE, /change/);
+});
+
+test('with favourites only they are shown, in order, once; the region’s others are More stores', () => {
+  const { shown: s, more } = shopsFor(
+    book,
+    prefs({ stores: ['Kobo', 'bookshop-gb', 'kobo'] }),
+    'GB',
+  );
+  assert.deepEqual(ids(s), ['kobo', 'bookshop-gb']);
+  assert.ok(ids(more).includes('waterstones'));
+  assert.ok(!ids(more).some(id => ids(s).includes(id)));
+});
+
+test('without favourites, the region’s stores, in the preferred format when it has some', () => {
+  const gb = shopsFor(book, NO_PREFS, 'GB');
+  assert.deepEqual(
+    ids(gb.shown),
+    suggestedStores('GB').map(s => s.id),
+  );
+  assert.deepEqual(gb.more, []);
+  assert.ok(!ids(gb.shown).includes('gandhi') && !ids(gb.shown).includes('bookshop-us'));
+  const ebook = shown(prefs({ format: 'ebook' }), 'GB');
+  assert.ok(ebook.every(s => s.formats.includes('ebook')));
+  assert.ok(!ids(ebook).includes('bookshop-gb'));
+  assert.ok(ids(ebook).includes('kobo'));
+  assert.ok(ids(shown(prefs({ format: 'print' }), 'GB')).includes('bookshop-gb'));
+  // A favourite beats the format.
+  assert.deepEqual(ids(shown(prefs({ format: 'ebook', stores: ['bookshop-gb'] }), 'GB')), [
+    'bookshop-gb',
+  ]);
+});
+
+test('Mexico shows Gandhi, priced; Apple Books is priced everywhere', () => {
+  const mx = shown(NO_PREFS, 'MX');
+  assert.ok(mx.find(s => s.id === 'gandhi')?.priced);
+  assert.ok(mx.find(s => s.id === 'apple-books')?.priced);
+  assert.equal(mx.find(s => s.id === 'amazon-mx')?.priced, false);
 });
 
 test('stores search by ISBN, or by title and first author without one', () => {
-  const links = whereToBuy(book, NO_PREFS, 'US');
-  assert.ok(links.find(l => l.store === 'bookshop-us')!.url.endsWith('=9780141182636'));
+  assert.ok(search('bookshop-us').endsWith('=9780141182636'));
   assert.equal(
     STORES.find(s => s.id === 'casadellibro-mx')!.search({
       isbn: book.isbn,
@@ -66,13 +109,14 @@ test('stores search by ISBN, or by title and first author without one', () => {
       encodeURIComponent('The Great Gatsby & Co F. Scott Fitzgerald') +
       '&map=ft',
   );
-  const bare = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US');
+  const bare = { ...book, isbn: '' };
   const want = '=' + encodeURIComponent('The Great Gatsby & Co F. Scott Fitzgerald');
-  assert.ok(bare.find(l => l.store === 'bookshop-us')!.url.endsWith(want));
-  assert.ok(!bare.some(l => l.url.includes('Other')));
+  assert.ok(search('bookshop-us', bare).endsWith(want));
+  assert.ok(!search('bookshop-us', bare).includes('Other'));
+  assert.ok(!search('bookshop-us', bare).includes(' '));
 });
 
-test('Barnes & Noble and Casa del Libro search their sites through DuckDuckGo', () => {
+test('Barnes & Noble, Casa del Libro and Apple Books search their sites through DuckDuckGo', () => {
   const site = (id: string, isbn: string) =>
     STORES.find(s => s.id === id)!.search({ isbn, title: '', author: '' });
   assert.equal(
@@ -83,62 +127,32 @@ test('Barnes & Noble and Casa del Libro search their sites through DuckDuckGo', 
     site('casadellibro-es', book.isbn),
     'https://duckduckgo.com/?q=' + encodeURIComponent('site:casadellibro.com 9780141182636'),
   );
-  assert.equal(STORES.find(s => s.id === 'bn')!.byIsbn, true);
-  const bare = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US');
-  assert.ok(
-    bare.find(l => l.store === 'bn')!.url.includes(encodeURIComponent('site:barnesandnoble.com')),
+  assert.equal(
+    site('apple-books', book.isbn),
+    'https://duckduckgo.com/?q=' + encodeURIComponent('site:books.apple.com 9780141182636'),
   );
-});
-
-test('query parts are encoded', () => {
-  const l = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US')[0]!;
-  assert.ok(!l.url.includes(' ') && !l.url.includes('& '));
-  assert.ok(l.url.includes('%26'));
-});
-
-test('links are labelled as searches', () => {
-  for (const l of whereToBuy(book, prefs({ location: 'Leeds' }), 'GB'))
-    assert.match(l.label, /^(Search|Find)/);
-});
-
-test("favourites come first in the reader's order, then the rest, without duplicates", () => {
-  const links = whereToBuy(book, prefs({ stores: ['Kobo', 'bookshop-gb', 'kobo'] }), 'GB');
-  assert.deepEqual(ids(links).slice(0, 2), ['kobo', 'bookshop-gb']);
-  assert.equal(new Set(ids(links)).size, links.length);
-  assert.equal(new Set(links.map(l => l.url)).size, links.length);
-});
-
-test('a format preference puts those stores ahead', () => {
-  const at = (links: { store: string }[], id: string) => links.findIndex(l => l.store === id);
-  const ebook = whereToBuy(book, prefs({ format: 'ebook' }), 'GB');
-  assert.equal(ebook[0]!.format, 'ebook');
-  assert.equal(ebook.find(l => l.store === 'bookshop-gb')?.format, undefined);
-  assert.ok(at(ebook, 'bookshop-gb') > at(ebook, 'kobo'));
-  const print = whereToBuy(book, prefs({ format: 'print' }), 'GB');
-  assert.ok(at(print, 'bookshop-gb') < at(print, 'kobo'));
-  assert.equal(print.find(l => l.store === 'kobo')?.format, undefined);
-});
-
-test('a favourite beats a format preference', () => {
-  const links = whereToBuy(book, prefs({ format: 'ebook', stores: ['bookshop-gb'] }), 'GB');
-  assert.equal(links[0]!.store, 'bookshop-gb');
+  assert.equal(STORES.find(s => s.id === 'bn')!.byIsbn, true);
+  assert.ok(
+    search('bn', { ...book, isbn: '' }).includes(encodeURIComponent('site:barnesandnoble.com')),
+  );
 });
 
 test('a custom store becomes a web search for its name and the ISBN', () => {
-  const links = whereToBuy(book, prefs({ stores: ['Corner Books & Café'] }), 'US');
-  assert.equal(links[0]!.store, 'Corner Books & Café');
-  assert.equal(links[0]!.kind, 'online');
-  assert.equal(
-    links[0]!.url,
-    'https://duckduckgo.com/?q=' + encodeURIComponent('Corner Books & Café 9780141182636'),
-  );
+  const [custom] = shown(prefs({ stores: ['Corner Books & Café'] }), 'US');
+  assert.deepEqual(custom, {
+    id: 'Corner Books & Café',
+    name: 'Corner Books & Café',
+    search: 'https://duckduckgo.com/?q=' + encodeURIComponent('Corner Books & Café 9780141182636'),
+    priced: false,
+    formats: [],
+  });
 });
 
 test('nearby links need a location', () => {
-  assert.ok(!whereToBuy(book, NO_PREFS, 'ES').some(l => l.kind === 'nearby'));
-  const near = whereToBuy(book, prefs({ location: 'Madrid, 28001' }), 'ES').filter(
-    l => l.kind === 'nearby',
-  );
+  const s = shown(NO_PREFS, 'ES');
+  assert.deepEqual(nearby(book, NO_PREFS, s, 'ES'), []);
+  assert.deepEqual(nearby(book, prefs({ location: '   ' }), s, 'ES'), []);
+  const near = nearby(book, prefs({ location: 'Madrid, 28001' }), s, 'ES');
   assert.ok(near.some(l => l.url.includes(encodeURIComponent('bookshops near Madrid, 28001'))));
   assert.ok(
     near.some(
@@ -146,7 +160,19 @@ test('nearby links need a location', () => {
     ),
   );
   assert.ok(near.some(l => l.store === 'casadellibro-es'));
-  assert.ok(whereToBuy(book, prefs({ location: '   ' }), 'ES').every(l => l.kind === 'online'));
+});
+
+test('the price query: the ISBN, the priced stores and the region, never the location', () => {
+  const p = prefs({ stores: ['kobo', 'Gandhi', 'apple-books'], location: 'Calle 5, CDMX' });
+  const s = shown(p, 'MX');
+  assert.equal(
+    priceQuery(book, s, 'MX'),
+    'isbn=9780141182636&region=MX&stores=gandhi%2Capple-books',
+  );
+  assert.ok(!priceQuery(book, s, 'MX').includes('Calle'));
+  assert.equal(priceQuery(book, s, ''), 'isbn=9780141182636&stores=gandhi%2Capple-books');
+  assert.equal(priceQuery(book, shown(prefs({ stores: ['kobo'] }), 'GB'), 'GB'), '');
+  assert.equal(priceQuery({ ...book, isbn: '' }, s, 'MX'), '');
 });
 
 test('regions: locales, suggestions and Spanish stores', () => {
@@ -164,7 +190,8 @@ test('regions: locales, suggestions and Spanish stores', () => {
   assert.ok(names('').includes('Kobo'));
   assert.deepEqual(suggestedStores('GB')[0]!.regions, ['GB']);
   assert.equal(new Set(names('GB')).size, names('GB').length);
-  assert.ok(whereToBuy(book, NO_PREFS, '').length > 0);
+  assert.ok(shown(NO_PREFS, '').length > 0);
+  assert.ok(names('').includes('Apple Books'));
 });
 
 test('readPrefs tolerates anything', () => {
@@ -190,12 +217,12 @@ test('readPrefs tolerates anything', () => {
 
 test('favourites saved by name resolve to the reader’s region, and ids stay exact', () => {
   const stores = ['Amazon', 'Bookshop.org', 'Casa del Libro'];
-  const gb = whereToBuy(book, prefs({ stores }), 'GB');
+  const gb = shown(prefs({ stores }), 'GB');
   assert.deepEqual(ids(gb).slice(0, 2), ['amazon-uk', 'bookshop-gb']);
-  assert.match(gb[0]!.url, /amazon\.co\.uk/);
-  const mx = whereToBuy(book, prefs({ stores }), 'MX');
+  assert.match(gb[0]!.search, /amazon\.co\.uk/);
+  const mx = shown(prefs({ stores }), 'MX');
   assert.equal(ids(mx)[0], 'amazon-mx');
   assert.ok(ids(mx).includes('casadellibro-mx'));
-  assert.equal(ids(whereToBuy(book, prefs({ stores: ['amazon-mx'] }), 'GB'))[0], 'amazon-mx');
+  assert.equal(ids(shown(prefs({ stores: ['amazon-mx'] }), 'GB'))[0], 'amazon-mx');
   assert.equal(storeNamed('Amazon', 'DE')?.id, 'amazon');
 });

@@ -1,0 +1,140 @@
+[
+  {
+    "productId": "440947",
+    "productName": "CIEN ANOS DE SOLEDAD",
+    "brand": "Gandhi",
+    "brandId": 2000004,
+    "brandImageUrl": null,
+    "linkText": "cien-anos-de-soledad-9780307474728",
+    "productReference": "9780307474728",
+    "productReferenceCode": "9780307474728",
+    "categoryId": "1",
+    "productTitle": "CIEN ANOS DE SOLEDAD",
+    "metaTagDescription": null,
+    "releaseDate": "2026-08-08T00:00:00Z",
+    "clusterHighlights": {},
+    "productClusters": {},
+    "searchableClusters": {},
+    "categories": ["/Libros/"],
+    "categoriesIds": ["/1/"],
+    "link": "https://www.gandhi.com.mx/cien-anos-de-soledad-9780307474728/p",
+    "Edición": ["1a Edición"],
+    "Año": ["2013"],
+    "SinopsisParent": ["9780307474728_null"],
+    "MarcaParent": ["9780307474728_Vintage Books"],
+    "TiposProducto": ["9780307474728_9780307474728"],
+    "Titulo": ["CIEN ANOS DE SOLEDAD"],
+    "Dimensiones": ["nullxnullxnull"],
+    "Autor": ["Gabriel García Márquez"],
+    "Idioma": ["Inglés"],
+    "País": ["Estados Unidos"],
+    "Generales": [
+      "Edición",
+      "Año",
+      "SinopsisParent",
+      "MarcaParent",
+      "TiposProducto",
+      "Titulo",
+      "Dimensiones",
+      "Autor",
+      "Idioma",
+      "País"
+    ],
+    "Número de páginas": ["494"],
+    "Editorial": ["Vintage Books"],
+    "Físicos": ["Número de páginas", "Editorial"],
+    "allSpecifications": [
+      "Edición",
+      "Año",
+      "SinopsisParent",
+      "MarcaParent",
+      "TiposProducto",
+      "Titulo",
+      "Dimensiones",
+      "Autor",
+      "Idioma",
+      "País",
+      "Número de páginas",
+      "Editorial"
+    ],
+    "allSpecificationsGroups": ["Generales", "Físicos"],
+    "description": "",
+    "items": [
+      {
+        "itemId": "439268",
+        "name": "CIEN ANOS DE SOLEDAD",
+        "nameComplete": "CIEN ANOS DE SOLEDAD",
+        "complementName": "CIEN ANOS DE SOLEDAD",
+        "ean": "9780307474728",
+        "referenceId": [{ "Key": "RefId", "Value": "9780307474728" }],
+        "measurementUnit": "un",
+        "unitMultiplier": 1.0,
+        "modalType": null,
+        "isKit": false,
+        "images": [
+          {
+            "imageId": "10550835",
+            "imageLabel": "Vista Frontal",
+            "imageTag": "<img src=\"~/arquivos/ids/10550835-#width#-#height#/Imagen.jpg?v=639217807919170000\" width=\"#width#\" height=\"#height#\" alt=\"Imagen\" id=\"\" />",
+            "imageUrl": "https://gandhi.vteximg.com.br/arquivos/ids/10550835/Imagen.jpg?v=639217807919170000",
+            "imageText": "Imagen",
+            "imageLastModified": "2026-08-08T10:13:11.9170000Z"
+          }
+        ],
+        "PrefijoTipo": ["FI"],
+        "Tipo": ["Tapa blanda"],
+        "variations": ["PrefijoTipo", "Tipo"],
+        "sellers": [
+          {
+            "sellerId": "1",
+            "sellerName": "Gandhi",
+            "addToCartLink": "https://www.gandhi.com.mx/checkout/cart/add?sku=439268&qty=1&seller=1&sc=1&price=0&cv=_&sc=1",
+            "sellerDefault": true,
+            "commertialOffer": {
+              "DeliverySlaSamplesPerRegion": {},
+              "Installments": [],
+              "DiscountHighLight": [],
+              "GiftSkuIds": [],
+              "Teasers": [],
+              "PromotionTeasers": [],
+              "BuyTogether": [],
+              "ItemMetadataAttachment": [],
+              "Price": 0.0,
+              "ListPrice": 0.0,
+              "PriceWithoutDiscount": 0.0,
+              "FullSellingPrice": null,
+              "PriceToken": null,
+              "RewardValue": 0.0,
+              "PriceValidUntil": null,
+              "AvailableQuantity": 0,
+              "IsAvailable": false,
+              "Tax": 0.0,
+              "DeliverySlaSamples": [],
+              "GetInfoErrorMessage": "Code: withoutStock Status:error Message: El ítem CIEN ANOS DE SOLEDAD no tiene inventario",
+              "CacheVersionUsedToCallCheckout": "_",
+              "PaymentOptions": null
+            }
+          }
+        ],
+        "Videos": [],
+        "estimatedDateArrival": null
+      }
+    ],
+    "skuSpecifications": [
+      {
+        "field": {
+          "id": 59,
+          "name": "PrefijoTipo",
+          "isActive": true,
+          "position": 1,
+          "type": "Combo"
+        },
+        "values": [{ "id": "524", "name": "FI", "position": 1 }]
+      },
+      {
+        "field": { "id": 50, "name": "Tipo", "isActive": true, "position": 3, "type": "Combo" },
+        "values": [{ "id": "76", "name": "Tapa blanda", "position": 4 }]
+      }
+    ]
+  }
+]

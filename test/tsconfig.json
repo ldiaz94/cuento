@@ -15,6 +15,7 @@
     "../worker/accounts.ts",
     "../worker/session.ts",
     "../worker/push.ts",
-    "../worker/reminders.ts"
+    "../worker/reminders.ts",
+    "../worker/prices.ts"
   ]
 }

@@ -1485,7 +1485,7 @@ h1 {
   }
 }
 
-/* ---- shopping: preferences in Settings, Where to buy in a Want book (shoppingView.ts) ---- */
+/* ---- shopping: preferences in Settings (shoppingView.ts) ---- */
 
 .shop-format,
 .shop-suggest {
@@ -1524,19 +1524,4 @@ h1 {
   font-size: 14px;
   color: var(--muted);
 }
-.buy {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-}
-.buy-links {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.buy-links a {
-  color: var(--accent);
-  overflow-wrap: anywhere;
-}
+/* Where to buy's own look is buy.css's. */

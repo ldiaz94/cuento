@@ -25,6 +25,8 @@
       { "name": "ACCOUNTS", "class_name": "Accounts" },
       // One object for every reminder (worker/notify.ts).
       { "name": "REMINDERS", "class_name": "Reminders" },
+      // One object per ISBN: its stores' prices, kept a day (worker/shop.ts).
+      { "name": "PRICES", "class_name": "Prices" },
     ],
   },
   // Each class keeps its data in SQLite: declared once, never renamed.
@@ -33,6 +35,7 @@
     { "tag": "v1", "new_sqlite_classes": ["Shelf"] },
     { "tag": "v2", "new_sqlite_classes": ["Accounts"] },
     { "tag": "v3", "new_sqlite_classes": ["Reminders"] },
+    { "tag": "v4", "new_sqlite_classes": ["Prices"] },
   ],
   // Reminders go out on the quarter hour (worker/notify.ts).
   "triggers": { "crons": ["*/15 * * * *"] },
