@@ -1,6 +1,8 @@
 /* Shopping in headless Chromium (playwright-core): the Settings section
  * (format, favourite stores, location) kept on this device and across a
- * reload, and Where to buy on a Want book: only the favourites, a priced
+ * reload, and synced with the shelf through a faked /api/shelf backed by
+ * worker/store.ts (a change from another device redraws Settings and
+ * Where to buy), and Where to buy on a Want book: only the favourites, a priced
  * store's card with its price from a faked /api/prices (asked with the
  * ISBN, store ids and region, never the location), searches for the rest,
  * nearby ones only with a location, none on any other status, and the
@@ -11,12 +13,21 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, type Browser, type Page } from 'playwright-core';
 import type { Server } from 'node:http';
+import { DatabaseSync } from 'node:sqlite';
 import { serve, origin } from './serve.ts';
+import { setUp, parse, apply, applySettings, applyPrefs, changedSince } from '../worker/store.ts';
+import type { Sql } from '../worker/store.ts';
 
 let server: Server, browser: Browser, page: Page;
 const errors: string[] = [];
 /** Every /api/prices URL the page asked for. */
 const asked: string[] = [];
+/** The shelf's store, as the Worker keeps it, behind a faked /api/shelf/<code>/sync. */
+const db = new DatabaseSync(':memory:');
+const shelf: Sql = (query, ...params) => db.prepare(query).all(...params);
+setUp(shelf);
+/** A sync code (26 characters of Crockford's base32). */
+const CODE = '0123456789ABCDEFGHJKMNPQRS';
 
 before(async () => {
   server = await serve();
@@ -54,6 +65,14 @@ before(async () => {
         },
       },
     });
+  });
+  await page.route('**/api/shelf/*/sync', route => {
+    const sync = parse(JSON.parse(route.request().postData() || 'null'));
+    if (!sync) return route.fulfill({ status: 400, body: 'Not a sync.' });
+    apply(shelf, sync.changes);
+    if (sync.settings) applySettings(shelf, sync.settings);
+    if (sync.prefs) applyPrefs(shelf, sync.prefs);
+    return route.fulfill({ json: changedSince(shelf, sync.since, sync.version) });
   });
   await page.goto(origin(server) + 'app/');
   await page.fill('.add form input', '9780306406157');
@@ -159,6 +178,56 @@ test('a location adds nearby searches', async () => {
   const near = await page.$$eval('.wtb-near a', as => as.map(a => a.textContent ?? ''));
   assert.ok(near.some(l => l.includes('Leeds')));
   assert.ok(near.some(l => l.includes('WorldCat')));
+});
+
+test('preferences, the location too, sync with the shelf; another device’s redraw them', async () => {
+  await page.evaluate(code => localStorage.setItem('cuento.sync', code), CODE);
+  await page.reload();
+  await page.waitForSelector('.book');
+  const prefsRow = () =>
+    shelf('SELECT data, updated FROM prefs WHERE id = 1')[0] as
+      | { data: string; updated: number }
+      | undefined;
+  for (let i = 0; i < 50 && !prefsRow(); i++) await page.waitForTimeout(100);
+  assert.deepEqual(JSON.parse(prefsRow()!.data), {
+    format: 'ebook',
+    stores: ['My Local Shop', 'waterstones', 'apple-books'],
+    location: 'Leeds',
+  });
+
+  // Another device, later, picks print, Kobo and York.
+  applyPrefs(shelf, {
+    data: { format: 'print', stores: ['kobo'], location: 'York' },
+    updated: prefsRow()!.updated + 1000,
+  });
+  await page.evaluate(() => dispatchEvent(new Event('online')));
+  await reveal();
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('.wtb-near a')].some(a => a.textContent?.includes('York')),
+  );
+  assert.deepEqual(await stores(), ['Kobo']);
+  await page.click('.gear');
+  await page.waitForSelector('.shopping');
+  assert.equal(await page.inputValue('.shop-location input'), 'York');
+  assert.deepEqual(await page.$$eval('.shop-stores li span', e => e.map(x => x.textContent)), [
+    'Kobo',
+  ]);
+  assert.equal(
+    await page.getAttribute('.shop-format [role=radio]:has-text("Print")', 'aria-checked'),
+    'true',
+  );
+  const kept = JSON.parse((await page.evaluate(() => localStorage.getItem('cuento.shopping')))!);
+  assert.equal(kept.location, 'York');
+
+  // A change here goes back to the shelf.
+  await page.fill('.shop-location input', 'Bath');
+  await page.press('.shop-location input', 'Tab');
+  await page.click('.settings .done');
+  for (let i = 0; i < 50 && JSON.parse(prefsRow()!.data).location !== 'Bath'; i++)
+    await page.waitForTimeout(100);
+  assert.equal(JSON.parse(prefsRow()!.data).location, 'Bath');
+  for (const url of asked) assert.ok(!/Leeds|York|Bath/.test(url), 'a location sent for prices');
+  await page.evaluate(() => localStorage.removeItem('cuento.sync'));
 });
 
 test('it fits at 390px and 320px in light and dark, and only Want books have it', async () => {

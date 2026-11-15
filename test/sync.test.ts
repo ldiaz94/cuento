@@ -4,12 +4,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { setUp, parse, apply, applySettings, changedSince, MAX_CHANGES } from '../worker/store.ts';
+import {
+  setUp,
+  parse,
+  apply,
+  applySettings,
+  applyPrefs,
+  changedSince,
+  MAX_CHANGES,
+} from '../worker/store.ts';
 import type { Sql } from '../worker/store.ts';
-import { diff, diffSettings, recorded, received, readCode, newCode, grouped } from '../src/sync.ts';
+import {
+  diff,
+  diffSettings,
+  diffPrefs,
+  recorded,
+  received,
+  readCode,
+  newCode,
+  grouped,
+} from '../src/sync.ts';
 import type { Snapshot, Reply, Change, Goals } from '../src/sync.ts';
 import { newBook, readBook, withStatus } from '../src/shelf.ts';
 import type { Book } from '../src/shelf.ts';
+import { NO_PREFS } from '../src/stores.ts';
+import type { ShoppingPrefs } from '../src/stores.ts';
 
 /** A new, empty store in memory. */
 function store(): Sql {
@@ -254,23 +273,44 @@ test('received: an incoming legacy book migrates without bouncing back', () => {
   assert.deepEqual(diff(r.books!, r.snapshot, 2), []);
 });
 
-/** A device: its shelf, goals and snapshot, syncing straight into sql. */
-function device(sql: Sql, books: Book[] = []) {
-  const d = { books, goals: {} as Goals, snapshot: { seq: 0, books: {} } as Snapshot };
+/** A device: its shelf, goals, shopping preferences and snapshot,
+ * syncing straight into sql (as an older client, without preferences,
+ * when old). */
+function device(sql: Sql, books: Book[] = [], old = false) {
+  const d = {
+    books,
+    goals: {} as Goals,
+    prefs: { ...NO_PREFS, stores: [] } as ShoppingPrefs,
+    snapshot: { seq: 0, books: {} } as Snapshot,
+  };
   const sync = (now: number) => {
     const changes = diff(d.books, d.snapshot, now);
     const mine = diffSettings(d.goals, d.snapshot, now);
-    apply(sql, changes);
-    if (mine) applySettings(sql, mine);
+    const prefs = old ? null : diffPrefs(d.prefs, d.snapshot, now);
+    const request = parse({
+      version: 2,
+      since: d.snapshot.seq,
+      changes,
+      settings: mine ?? undefined,
+      prefs: prefs ?? undefined,
+    });
+    assert.ok(request);
+    apply(sql, request.changes);
+    if (request.settings) applySettings(sql, request.settings);
+    if (request.prefs) applyPrefs(sql, request.prefs);
+    const reply = changedSince(sql, d.snapshot.seq) as Reply;
+    if (old) delete reply.prefs; // an older client knows nothing of them
     const r = received(
       d.books,
-      recorded(d.snapshot, changes, d.snapshot.seq, mine),
-      changedSince(sql, d.snapshot.seq) as Reply,
+      recorded(d.snapshot, changes, d.snapshot.seq, mine, prefs),
+      reply,
       d.goals,
+      d.prefs,
     );
     d.snapshot = r.snapshot;
     if (r.books) d.books = r.books;
     if (r.goals) d.goals = r.goals;
+    if (r.prefs) d.prefs = r.prefs;
   };
   return { d, sync };
 }
@@ -350,4 +390,121 @@ test('two devices: a goal set on one reaches the other, and the later goal wins'
   b.sync(7);
   assert.deepEqual(b.d.goals, { '2026': 25, '2025': 10 });
   assert.deepEqual(changedSince(sql, a.d.snapshot.seq).settings, undefined); // all caught up
+});
+
+/** Shopping preferences. */
+const prefs = (
+  format: ShoppingPrefs['format'],
+  stores: string[],
+  location: string,
+): ShoppingPrefs => ({ format, stores, location });
+
+test('two devices: shopping preferences, the location too, round-trip; none sent from a new device', () => {
+  const sql = store();
+  const a = device(sql);
+  const b = device(sql);
+  a.d.prefs = prefs('ebook', ['kobo', 'My Local Shop'], 'Leeds');
+  a.sync(1);
+  assert.equal(diffPrefs(b.d.prefs, b.d.snapshot, 2), null); // b has none: sends none
+  b.sync(2);
+  assert.deepEqual(b.d.prefs, prefs('ebook', ['kobo', 'My Local Shop'], 'Leeds'));
+  assert.equal(diffPrefs(b.d.prefs, b.d.snapshot, 3), null); // no bounce back
+
+  b.d.prefs = { ...b.d.prefs, location: 'York' };
+  b.sync(4);
+  a.sync(5);
+  assert.equal(a.d.prefs.location, 'York');
+
+  a.d.prefs = { ...NO_PREFS, stores: [] }; // cleared: that travels too
+  a.sync(6);
+  b.sync(7);
+  assert.deepEqual(b.d.prefs, NO_PREFS);
+  assert.equal(diffPrefs(a.d.prefs, a.d.snapshot, 8), null);
+  assert.equal(diffPrefs(b.d.prefs, b.d.snapshot, 8), null);
+  assert.equal(changedSince(sql, a.d.snapshot.seq).prefs, undefined); // all caught up
+});
+
+test('preferences: the later write wins whole; a tie keeps the store’s', () => {
+  const sql = store();
+  const p = (location: string, updated: number) => ({
+    data: prefs('print', ['bn'], location),
+    updated,
+  });
+  assert.equal(applyPrefs(sql, p('Leeds', 10)), true);
+  assert.equal(applyPrefs(sql, p('older', 5)), false);
+  assert.equal(applyPrefs(sql, p('tie', 10)), false);
+  assert.equal(changedSince(sql, 0).prefs?.data.location, 'Leeds');
+  assert.equal(applySettings(sql, settings({ '2026': 3 }, 1)), true); // apart from the goals
+  assert.equal(changedSince(sql, 0).prefs?.data.location, 'Leeds');
+  assert.equal(changedSince(sql, 2).prefs, undefined);
+
+  // Two devices change them apart; the later change wins on both.
+  const a = device(sql);
+  const b = device(sql);
+  a.sync(20);
+  b.sync(21);
+  a.d.prefs = prefs('ebook', ['kobo'], 'Bath');
+  b.d.prefs = prefs('print', ['bn'], 'York');
+  a.sync(30);
+  b.sync(40); // later: wins, and b keeps its own
+  a.sync(50);
+  assert.deepEqual(a.d.prefs, prefs('print', ['bn'], 'York'));
+  assert.deepEqual(b.d.prefs, prefs('print', ['bn'], 'York'));
+
+  // Received while changed here meanwhile: kept here, and sent next.
+  const synced = recorded({ seq: 0, books: {} }, [], 1, null, {
+    data: prefs('', [], 'Leeds'),
+    updated: 1,
+  });
+  const theirs: Reply = { seq: 2, changes: [], prefs: { data: prefs('', [], 'York'), updated: 5 } };
+  const edited = received([], synced, theirs, {}, prefs('', [], 'Bath'));
+  assert.equal(edited.prefs, null);
+  assert.equal(diffPrefs(prefs('', [], 'Bath'), edited.snapshot, 9)?.data.location, 'Bath');
+  assert.equal(received([], synced, theirs, {}, prefs('', [], 'Leeds')).prefs?.location, 'York');
+});
+
+test('store: preferences are checked before they are kept, to stores.ts’s limits', () => {
+  const ask = (p: unknown) => parse({ since: 0, changes: [], prefs: p });
+  const ok = { data: prefs('ebook', ['kobo'], 'Leeds'), updated: 1 };
+  assert.deepEqual(ask(ok)?.prefs, ok);
+  assert.deepEqual(ask({ ...ok, data: { ...ok.data, extra: 'x' } })?.prefs, ok); // extras left out
+  assert.equal(parse({ since: 0, changes: [] })?.prefs, undefined);
+  const bad = (data: object, updated = 1) => ask({ data: { ...ok.data, ...data }, updated });
+  assert.equal(bad({}, 0), null);
+  assert.equal(bad({ format: 'audio' }), null);
+  assert.equal(bad({ stores: 'kobo' }), null);
+  assert.equal(bad({ stores: [1] }), null);
+  assert.equal(bad({ stores: Array.from({ length: 21 }, (_, i) => 'S' + i) }), null);
+  assert.ok(bad({ stores: Array.from({ length: 20 }, (_, i) => 'S' + i) }));
+  assert.equal(bad({ stores: ['x'.repeat(61)] }), null);
+  assert.ok(bad({ stores: ['x'.repeat(60)] }));
+  assert.equal(bad({ location: 'x'.repeat(201) }), null);
+  assert.ok(bad({ location: 'x'.repeat(200) }));
+  assert.equal(bad({ location: 7 }), null);
+  assert.equal(ask({ updated: 1 }), null);
+  assert.equal(ask('x'), null);
+});
+
+test('older clients: without preferences, their syncs leave them be', () => {
+  const sql = store();
+  const a = device(sql);
+  const old = device(sql, [], true);
+  a.d.prefs = prefs('ebook', ['kobo'], 'Leeds');
+  a.sync(1);
+  old.d.goals = { '2026': 10 };
+  old.d.books = [book(DUNE, 'Dune')];
+  old.sync(2); // settings and a book, no preferences
+  assert.deepEqual(old.d.prefs, NO_PREFS);
+  a.sync(3);
+  assert.deepEqual(a.d.prefs, prefs('ebook', ['kobo'], 'Leeds'));
+  assert.deepEqual(a.d.goals, { '2026': 10 });
+  assert.equal(a.d.books[0]?.isbn, DUNE);
+  assert.equal(changedSince(sql, 0).prefs?.data.location, 'Leeds');
+  // A legacy reply keeps its old shape, plus preferences an old client ignores.
+  const legacy = changedSince(sql, 0, undefined);
+  assert.equal(legacy.settings?.data.goals['2026'], 10);
+  // A snapshot from before preferences synced (none kept) sends this device's.
+  const before: Snapshot = { seq: 0, books: {} };
+  assert.deepEqual(diffPrefs(prefs('', ['bn'], ''), before, 4)?.data.stores, ['bn']);
+  assert.equal(received([], before, { seq: 0, changes: [] }).prefs, null);
 });

@@ -122,8 +122,10 @@ Beyond the page, four more, each a module or two:
   Object with SQLite, found by a hash of its code. Devices send what
   changed since the last sync (a diff against a snapshot, so the page
   never says what it changed); the latest change to a book wins, and
-  the reading goals travel with the shelf as one more record, the
-  latest write winning; a WebSocket tells the others to sync.
+  the reading goals travel with the shelf as one more record, and the
+  shopping preferences (format, stores and location) as another, the
+  latest write winning each; the location goes to no store or price
+  lookup. A WebSocket tells the others to sync.
 - **Accounts are passkeys** ([worker/auth.ts](worker/auth.ts),
   [src/account.ts](src/account.ts)): an account owns one shelf, so
   signing in on a new device joins it. Sessions are signed cookies

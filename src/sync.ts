@@ -14,17 +14,23 @@
  * server keeps the later of two changes to a book (last writer wins), and
  * answers with every book changed since this device last asked. The
  * reading goals travel the same way as one more record, the settings:
- * the snapshot keeps their JSON, and the later change wins whole.
+ * the snapshot keeps their JSON, and the later change wins whole. The
+ * shopping preferences (format, stores and location, stores.ts) are
+ * another such record, apart from the goals; the location goes only to
+ * the reader's own shelf, never to a store or /api/prices.
  *
  * It syncs on opening, a moment after the books change, on coming back
  * online or to the screen, and when the server says another device
- * changed something (a WebSocket). Depends on spark and shelf.ts. Leaves
+ * changed something (a WebSocket). Depends on spark, shelf.ts and
+ * stores.ts. Leaves
  * out merging within a book (the later book wins whole), and devices
  * whose clocks are far off (their changes lose or win unfairly). */
 import { signal, effect } from './spark/index.js';
 import type { Getter, Setter } from './spark/index.js';
 import { readBook, merge } from './shelf.ts';
 import type { Book } from './shelf.ts';
+import { readPrefs } from './stores.ts';
+import type { ShoppingPrefs } from './stores.ts';
 
 /** Where sync is: not on, talking to the server, done, or unable. */
 export type SyncStatus = 'off' | 'syncing' | 'synced' | 'offline' | 'error';
@@ -48,12 +54,20 @@ export interface Settings {
 /** Reading goals by year (books to finish). */
 export type Goals = Record<string, number>;
 
+/** The shopping preferences, as of updated (ms, by the clock of the
+ * device that wrote them). */
+export interface Prefs {
+  data: ShoppingPrefs;
+  updated: number;
+}
+
 /** The server's answer to a sync: its last seq, what changed since, and the
- * settings when they did. */
+ * settings and preferences when they did. */
 export interface Reply {
   seq: number;
   changes: Change[];
   settings?: Settings;
+  prefs?: Prefs;
 }
 
 /** A book as last synced: its JSON (null once deleted), and when it changed. */
@@ -63,11 +77,13 @@ export interface Kept {
 }
 
 /** The shelf as last synced: the server's seq then, every book by ISBN,
- * and the settings (none until there are goals to sync). */
+ * the settings (none until there are goals to sync), and the preferences
+ * (none until there are some; json null once they were emptied). */
 export interface Snapshot {
   seq: number;
   books: Record<string, Kept>;
   settings?: { json: string; updated: number };
+  prefs?: { json: string | null; updated: number };
 }
 
 /** Crockford's base32: no I, L, O or U, so a code reads back unmistakably. */
@@ -142,18 +158,41 @@ function settingsJson(goals: Goals): string | null {
   return Object.keys(goals).length ? JSON.stringify(goals) : null;
 }
 
+/** The preferences changed here since the snapshot, stamped now, or null.
+ * None and none synced is nothing to send, so a new device never wipes
+ * the shelf's preferences. */
+export function diffPrefs(prefs: ShoppingPrefs, snapshot: Snapshot, now: number): Prefs | null {
+  if (prefsJson(prefs) === (snapshot.prefs?.json ?? null)) return null;
+  return { data: readPrefs(prefs), updated: now };
+}
+
+/** prefs as the snapshot keeps them (null when there are none). */
+function prefsJson(prefs: ShoppingPrefs): string | null {
+  const p = readPrefs(prefs);
+  return p.format || p.stores.length || p.location ? JSON.stringify(p) : null;
+}
+
+/** The preferences in a reply, cleaned (stores.ts), or null when there are none. */
+function readIncomingPrefs(value: unknown): Prefs | null {
+  const p = value as Prefs | null;
+  if (typeof p?.data !== 'object' || p.data === null || typeof p.updated !== 'number') return null;
+  return { data: readPrefs(p.data), updated: p.updated };
+}
+
 /** Whether value is settings as the server sends them. */
 function isSettings(value: unknown): value is Settings {
   const s = value as Settings | null;
   return typeof s?.data?.goals === 'object' && s.data.goals !== null;
 }
 
-/** snapshot with changes and settings recorded, as kept by the server. */
+/** snapshot with changes, settings and preferences recorded, as kept by
+ * the server. */
 export function recorded(
   snapshot: Snapshot,
   changes: Change[],
   seq = snapshot.seq,
   settings?: Settings | null,
+  prefs?: Prefs | null,
 ): Snapshot {
   const books = { ...snapshot.books };
   for (const c of changes)
@@ -163,6 +202,10 @@ export function recorded(
     ? { json: JSON.stringify(settings.data.goals), updated: settings.updated }
     : snapshot.settings;
   if (kept) next.settings = kept;
+  const keptPrefs = prefs
+    ? { json: prefsJson(prefs.data), updated: prefs.updated }
+    : snapshot.prefs;
+  if (keptPrefs) next.prefs = keptPrefs;
   return next;
 }
 
@@ -176,17 +219,24 @@ function readChanges(changes: Change[]): Change[] {
   });
 }
 
-/** The shelf, goals and snapshot once the server's reply is in. The
- * snapshot takes every valid change; the shelf takes those to books it hasn't
- * changed since the snapshot, and the goals the settings if unchanged
- * here (own changes go next time, and win, being newer). books and
- * goals are null when they stay as they were. */
+/** The shelf, goals, preferences and snapshot once the server's reply is
+ * in. The snapshot takes every valid change; the shelf takes those to books
+ * it hasn't changed since the snapshot, the goals the settings and the
+ * preferences theirs, if unchanged here (own changes go next time, and
+ * win, being newer). books, goals and prefs are null when they stay as
+ * they were. */
 export function received(
   books: Book[],
   snapshot: Snapshot,
   reply: Reply,
   goals: Goals = {},
-): { books: Book[] | null; goals: Goals | null; snapshot: Snapshot } {
+  prefs: ShoppingPrefs = readPrefs(null),
+): {
+  books: Book[] | null;
+  goals: Goals | null;
+  prefs: ShoppingPrefs | null;
+  snapshot: Snapshot;
+} {
   const shelf = new Map(books.map(b => [b.isbn, JSON.stringify(b)]));
   const taken: Book[] = [];
   const gone = new Set<string>();
@@ -200,20 +250,30 @@ export function received(
     else taken.push(c.book);
   }
   const theirs = isSettings(reply.settings) ? reply.settings : null;
-  const next = recorded(snapshot, changes, reply.seq, theirs);
+  const theirPrefs = readIncomingPrefs(reply.prefs);
+  const next = recorded(snapshot, changes, reply.seq, theirs, theirPrefs);
   const took =
     theirs &&
     next.settings?.json !== (snapshot.settings?.json ?? null) && // not an echo
     settingsJson(goals) === (snapshot.settings?.json ?? null) // not changed here meanwhile
       ? theirs.data.goals
       : null;
-  if (!taken.length && !gone.size) return { books: null, goals: took, snapshot: next };
+  const was = snapshot.prefs?.json ?? null;
+  const tookPrefs =
+    theirPrefs &&
+    (next.prefs?.json ?? null) !== was && // not an echo
+    prefsJson(prefs) === was // not changed here meanwhile
+      ? theirPrefs.data
+      : null;
+  if (!taken.length && !gone.size)
+    return { books: null, goals: took, prefs: tookPrefs, snapshot: next };
   return {
     books: merge(
       books.filter(b => !gone.has(b.isbn)),
       newestFirst(taken),
     ),
     goals: took,
+    prefs: tookPrefs,
     snapshot: next,
   };
 }
@@ -244,7 +304,7 @@ function keepSnapshot(snapshot: Snapshot) {
 
 // ---- The server -----------------------------------------------------------
 
-/** Sends changes (and settings, if changed) to code's shelf, with since;
+/** Sends changes (and settings and preferences, if changed) to code's shelf, with since;
  * the server's reply. Throws a TypeError when there is no network, an
  * Error when refused. */
 async function post(
@@ -252,11 +312,18 @@ async function post(
   since: number,
   changes: Change[],
   settings?: Settings | null,
+  prefs?: Prefs | null,
 ): Promise<Reply> {
   const response = await fetch('/api/shelf/' + code + '/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ version: 2, since, changes, settings: settings ?? undefined }),
+    body: JSON.stringify({
+      version: 2,
+      since,
+      changes,
+      settings: settings ?? undefined,
+      prefs: prefs ?? undefined,
+    }),
   });
   if (!response.ok) throw Error(await response.text());
   return (await response.json()) as Reply;
@@ -271,28 +338,34 @@ export { status };
 /** This device's sync code, or '' when sync is off. */
 export { code };
 
-/** The shelf and the goals, as startSync was given them. */
+/** The shelf, the goals and the preferences, as startSync was given them. */
 let books: Getter<Book[]> = () => [];
 let setBooks: Setter<Book[]> = v => v as Book[];
 let goals: Getter<Goals> = () => ({});
 let setGoals: Setter<Goals> = v => v as Goals;
+let prefs: Getter<ShoppingPrefs> = () => readPrefs(null);
+let setPrefs: (prefs: ShoppingPrefs) => void = () => {};
 /** The sync under way, if any, and whether another is wanted after it. */
 let running: Promise<void> | null = null;
 let again = false;
 
 /** Starts syncing, if this device syncs (call once, at startup): now,
- * when the books change, and when the server or the browser says so. A
- * #sync=<code> link joins that shelf. */
+ * when the books, goals or preferences change, and when the server or the
+ * browser says so. A #sync=<code> link joins that shelf. */
 export function startSync(
   get: Getter<Book[]>,
   set: Setter<Book[]>,
   getGoals: Getter<Goals>,
   setGoalsTo: Setter<Goals>,
+  getPrefs: Getter<ShoppingPrefs> = prefs,
+  setPrefsTo: (prefs: ShoppingPrefs) => void = setPrefs,
 ) {
   books = get;
   setBooks = set;
   goals = getGoals;
   setGoals = setGoalsTo;
+  prefs = getPrefs;
+  setPrefs = setPrefsTo;
   setCode(localStorage.getItem(CODE_KEY) || '');
   if (code()) wake();
 
@@ -307,10 +380,16 @@ export function startSync(
   effect(() => {
     get();
     getGoals();
+    getPrefs();
     clearTimeout(timer);
     timer = setTimeout(() => {
       const snapshot = readSnapshot();
-      if (code() && (diff(books(), snapshot, 0).length || diffSettings(goals(), snapshot, 0)))
+      if (
+        code() &&
+        (diff(books(), snapshot, 0).length ||
+          diffSettings(goals(), snapshot, 0) ||
+          diffPrefs(prefs(), snapshot, 0))
+      )
         sync();
     }, DEBOUNCE);
   });
@@ -337,8 +416,9 @@ function sync(): Promise<void> {
   return running;
 }
 
-/** One sync: sends the shelf's changes in batches (the settings with
- * the first), and takes in the server's; the status says how it went. */
+/** One sync: sends the shelf's changes in batches (the settings and
+ * preferences with the first), and takes in the server's; the status says
+ * how it went. */
 async function once() {
   const shelf = code();
   if (!shelf) return;
@@ -349,18 +429,21 @@ async function once() {
     const now = Date.now();
     const changes = diff(books(), snapshot, now);
     let settings = diffSettings(goals(), snapshot, now);
+    let mine = diffPrefs(prefs(), snapshot, now);
     let sent = 0;
     do {
       const batch = changes.slice(sent, (sent += BATCH));
-      const reply = await post(shelf, snapshot.seq, batch, settings);
+      const reply = await post(shelf, snapshot.seq, batch, settings, mine);
       if (code() !== shelf) return; // left, or joined another, meanwhile
-      const kept = recorded(snapshot, batch, snapshot.seq, settings);
+      const kept = recorded(snapshot, batch, snapshot.seq, settings, mine);
       settings = null;
-      const next = received(books(), kept, reply, goals());
+      mine = null;
+      const next = received(books(), kept, reply, goals(), prefs());
       snapshot = next.snapshot;
-      keepSnapshot(snapshot); // first, so the books and goals it sets are not changes
+      keepSnapshot(snapshot); // first, so what it sets here is not a change
       if (next.books) setBooks(next.books);
       if (next.goals) setGoals(next.goals);
+      if (next.prefs) setPrefs(next.prefs);
     } while (sent < changes.length);
     setStatus('synced');
   } catch (error) {
@@ -376,9 +459,9 @@ export async function enable() {
 
 /** Joins the shelf of code (as typed or pasted): its books join this
  * device's, its copy winning where both have a book; books only here are
- * then sent to it. Its goals replace this device's, unless it has none,
- * and then this device's go to it. Throws when the code is not one or the server can't
- * be reached. */
+ * then sent to it. Its goals and preferences replace this device's,
+ * unless it has none, and then this device's go to it. Throws when the
+ * code is not one or the server can't be reached. */
 export async function join(text: string) {
   const shelf = readCode(text);
   if (!shelf) throw Error('That is not a sync code.');
@@ -395,9 +478,11 @@ export async function join(text: string) {
   const changes = readChanges(reply.changes);
   const theirs = changes.flatMap(c => (c.book ? [c.book] : []));
   const settings = isSettings(reply.settings) ? reply.settings : null;
-  start(shelf, recorded({ seq: 0, books: {} }, changes, reply.seq, settings));
+  const theirPrefs = readIncomingPrefs(reply.prefs);
+  start(shelf, recorded({ seq: 0, books: {} }, changes, reply.seq, settings, theirPrefs));
   setBooks(merge(books(), newestFirst(theirs)));
   if (settings) setGoals(settings.data.goals);
+  if (theirPrefs && prefsJson(theirPrefs.data)) setPrefs(theirPrefs.data);
   await sync();
 }
 

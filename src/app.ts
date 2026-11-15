@@ -34,7 +34,12 @@ import { syncSection } from './syncView.ts';
 import { accountSection } from './accountView.ts';
 import { follow } from './account.ts';
 import { remindersSection } from './remindersView.ts';
-import { shoppingSection, whereToBuySection } from './shoppingView.ts';
+import {
+  shoppingSection,
+  whereToBuySection,
+  shoppingPrefs,
+  keepShoppingPrefs,
+} from './shoppingView.ts';
 import { review } from './review.ts';
 import { historyEditor } from './historyView.ts';
 import { libraryTools, libraryList } from './libraryView.ts';
@@ -173,9 +178,9 @@ function loadGoals(): Record<string, number> {
     return {};
   }
 }
-// And, once sync is on, books and goals are shared with the reader's
-// other devices.
-startSync(books, setBooks, goals, setGoals);
+// And, once sync is on, books, goals and shopping preferences are shared
+// with the reader's other devices.
+startSync(books, setBooks, goals, setGoals, shoppingPrefs, keepShoppingPrefs);
 follow(); // signed in: stay on the account's shelf
 /** This year's goal (0: none). */
 const goal = () => goals()[thisYear()] ?? 0;

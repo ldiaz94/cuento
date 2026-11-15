@@ -1,7 +1,8 @@
 /* cuento's Worker: the API for shelves that sync between devices. Every
  * path but /api/* is a static file (wrangler.jsonc sends only those here).
  *
- *   POST /api/shelf/<code>/sync   {since, changes, settings?} ─► {seq, changes, settings?}
+ *   POST /api/shelf/<code>/sync   {since, changes, settings?, prefs?}
+ *                                 ─► {seq, changes, settings?, prefs?}
  *   GET  /api/shelf/<code>/live   a WebSocket that hears "changed"
  *
  * The sync code is the shelf's address and its only secret: each code has
@@ -14,7 +15,7 @@
  * are notify.ts's; Where to buy's prices (/api/prices) are shop.ts's.
  * Leaves out rate limits and deleting a shelf. */
 import { DurableObject } from 'cloudflare:workers';
-import { setUp, parse, apply, applySettings, changedSince } from './store.ts';
+import { setUp, parse, apply, applySettings, applyPrefs, changedSince } from './store.ts';
 import type { Sql, SyncRequest, SyncReply } from './store.ts';
 import { auth } from './auth.ts';
 export { Accounts } from './auth.ts';
@@ -45,7 +46,8 @@ export class Shelf extends DurableObject<Env> {
     const kept = this.ctx.storage.transactionSync(
       () =>
         apply(this.sql, request.changes) +
-        (request.settings && applySettings(this.sql, request.settings) ? 1 : 0),
+        (request.settings && applySettings(this.sql, request.settings) ? 1 : 0) +
+        (request.prefs && applyPrefs(this.sql, request.prefs) ? 1 : 0),
     );
     if (kept > 0)
       for (const socket of this.ctx.getWebSockets()) {
