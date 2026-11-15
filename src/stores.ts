@@ -135,13 +135,14 @@ export const STORES: readonly Store[] = [
     'https://www.casadellibro.com/busqueda-generica?busqueda=',
     true,
   ),
-  shop(
-    'casadellibro-mx',
-    'Casa del Libro',
-    ['MX'],
-    BOTH,
-    'https://www.casadellibro.com.mx/busqueda-generica?busqueda=',
-  ),
+  {
+    // The Mexican store is a VTEX site at latam.casadellibro.com; its search is the term as the path.
+    ...shop('casadellibro-mx', 'Casa del Libro', ['MX'], BOTH, ''),
+    search: q => {
+      const t = enc(term(q, true));
+      return `https://latam.casadellibro.com/${t}?_q=${t}&map=ft`;
+    },
+  },
   shop(
     'fnac-es',
     'Fnac',

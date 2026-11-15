@@ -39,6 +39,14 @@ test('every link is https and every store has a unique id', () => {
 test('stores search by ISBN, or by title and first author without one', () => {
   const links = whereToBuy(book, NO_PREFS, 'US');
   assert.ok(links.find(l => l.store === 'bookshop-us')!.url.endsWith('=9780141182636'));
+  assert.equal(
+    STORES.find(s => s.id === 'casadellibro-mx')!.search({
+      isbn: book.isbn,
+      title: '',
+      author: '',
+    }),
+    'https://latam.casadellibro.com/9780141182636?_q=9780141182636&map=ft',
+  );
   const bare = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US');
   const want = '=' + encodeURIComponent('The Great Gatsby & Co F. Scott Fitzgerald');
   assert.ok(bare.find(l => l.store === 'bookshop-us')!.url.endsWith(want));
