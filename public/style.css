@@ -951,6 +951,7 @@ h1 {
 }
 .body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* an open book's date fields never widen it */
   align-content: start;
   gap: 10px;
   min-width: 0;
@@ -1027,7 +1028,7 @@ h1 {
 .seg button {
   position: relative; /* above the thumb */
   min-height: 38px;
-  padding: 0 12px;
+  padding: 0 8px; /* four fit beside a cover on a 390px phone */
   border: 0;
   border-radius: 9px;
   background: none;
@@ -1103,11 +1104,13 @@ h1 {
 }
 .dates {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   gap: 10px;
 }
 .dates label {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* a date field's own width never widens the book */
+  min-width: 0;
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
@@ -1127,6 +1130,97 @@ h1 {
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
+/* Read again, and Up next: quiet buttons beside the switch. */
+.again,
+.next {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+.next[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* A book's history (historyView.ts): each read a row of two dates. */
+.history {
+  display: grid;
+  gap: 10px;
+}
+/* One column each, that never grows past the book's width. */
+.details,
+.history,
+.sessions,
+.past {
+  grid-template-columns: minmax(0, 1fr);
+}
+.history h3 {
+  margin: 4px 0 0;
+  font: 600 13px/1 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.history .note {
+  margin: 0;
+}
+.sessions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.session {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--paper-2);
+}
+.session .which {
+  font-weight: 600;
+  font-size: 14px;
+}
+.session .dates {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+}
+.forget,
+.add-past,
+.quiet {
+  min-height: 36px;
+  padding: 0 10px;
+  border-color: transparent;
+  background: none;
+  font-size: 14px;
+}
+.forget {
+  color: var(--bad);
+}
+.add-past {
+  justify-self: start;
+  color: var(--accent);
+}
+.past {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.past .dates {
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+}
+.past-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .remove {
   justify-self: start;
   border-color: transparent;

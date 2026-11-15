@@ -1,15 +1,17 @@
 /* cuento in a real browser (headless Chromium through playwright-core),
  * with Open Library and Google Books faked: adding books, every note the
  * ISBN field gives, statuses and rating, filters and search, a reload, and
- * that a book's text never becomes HTML. CHROMIUM names the browser
- * (default /usr/sbin/chromium). Runs build/site/ (robbie build first).
- * Depends on test/serve.ts. */
-import { test, before, after } from 'node:test';
+ * that a book's text never becomes HTML; then, on a shelf of their own,
+ * Read again, editing the reading history, and Up next. CHROMIUM names the
+ * browser (default /usr/sbin/chromium). Runs build/site/ (robbie build
+ * first). Depends on test/serve.ts and shelf.ts. */
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, type Browser, type Page } from 'playwright-core';
 import type { Server } from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
 import { serve, origin } from './serve.ts';
+import { newBook, withStatus } from '../src/shelf.ts';
 
 /** What the fake Open Library knows, by ISBN-13. */
 const LIBRARY: Record<string, object> = {
@@ -231,4 +233,111 @@ test('a new version waits for Update, which reloads into it', async () => {
   } finally {
     await writeFile(worker, before);
   }
+});
+
+// Read again, the history editor and Up next, on a shelf of their own (a
+// fresh browser context, so the shelf above is left as it was).
+describe('history and Up next', () => {
+  let p: Page;
+  const DUNE = '9780306406157';
+  const EMMA = '9780804429573';
+  /** The book on p whose title has words. */
+  const book = (words: string) => p.locator('.book', { hasText: words });
+  /** The reading sessions listed in an open book's history. */
+  const sessions = (words: string) => book(words).locator('.session');
+  /** The titles on p's shelf, in order. */
+  const shelved = () => p.$$eval('.book .title strong', els => els.map(e => e.textContent));
+  /** Whether p is no wider than its viewport. */
+  const fits = () => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+
+  before(async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    p = await context.newPage();
+    p.on('pageerror', e => errors.push(e.message));
+    const dune = newBook(DUNE, { title: 'Dune' }, 'owned', '2026-01-01');
+    const shelf = [
+      withStatus(withStatus(dune, 'reading', '2026-01-05'), 'read', '2026-01-20'),
+      newBook(EMMA, { title: 'Emma' }, 'owned', '2026-01-01'),
+    ];
+    await p.goto(origin(server) + 'app/');
+    await p.evaluate(books => localStorage.setItem('cuento.books', books), JSON.stringify(shelf));
+    await p.reload();
+    await p.waitForSelector('.book');
+  });
+  after(() => p.context().close());
+
+  test('Read again starts a new read, and the earlier one stays', async () => {
+    assert.equal(await book('Emma').locator('.again').count(), 0); // only Read books
+    await book('Dune').locator('.again').click();
+    assert.equal(await book('Dune').locator('.seg').getAttribute('data-at'), 'reading');
+    await book('Dune').locator('.title').click();
+    await sessions('Dune').nth(1).waitFor(); // it opens a frame later (a view transition)
+    assert.deepEqual(await sessions('Dune').locator('.which').allTextContents(), [
+      'Read 1',
+      'Reading now',
+    ]);
+    const first = sessions('Dune').nth(0).locator('input');
+    assert.equal(await first.nth(0).inputValue(), '2026-01-05');
+    assert.equal(await first.nth(1).inputValue(), '2026-01-20');
+    assert.equal(await sessions('Dune').nth(1).locator('input').nth(1).inputValue(), '');
+  });
+
+  test('the history is edited, backfilled and pruned, and History follows', async () => {
+    const open = sessions('Dune').nth(1).locator('input');
+    await open.nth(0).fill('2026-03-01');
+    await open.nth(1).fill('2026-03-10'); // finished: the book is Read again
+    assert.equal(await book('Dune').locator('.seg').getAttribute('data-at'), 'read');
+    // A finish before its start is refused, and said so.
+    await sessions('Dune').nth(0).locator('input').nth(1).fill('2025-12-01');
+    assert.match(await book('Dune').locator('.history .note.bad').innerText(), /before it starts/);
+    assert.equal(await sessions('Dune').nth(0).locator('input').nth(1).inputValue(), '2026-01-20');
+    // A read from before cuento, added by hand, goes first.
+    await book('Dune').locator('.add-past').click();
+    await book('Dune').locator('.past input').nth(0).fill('2019-04-01');
+    await book('Dune').locator('.past input').nth(1).fill('2019-05-01');
+    await book('Dune').locator('.past button', { hasText: 'Add read' }).click();
+    assert.deepEqual(await sessions('Dune').locator('.which').allTextContents(), [
+      'Read 1',
+      'Read 2',
+      'Read 3',
+    ]);
+    assert.equal(await sessions('Dune').nth(0).locator('input').nth(1).inputValue(), '2019-05-01');
+    assert.ok(await fits()); // the open book fits a phone
+    await p.locator('.years .chip', { hasText: '2019' }).click();
+    await p.waitForFunction(() => document.querySelectorAll('.book').length === 1);
+    assert.match(await p.locator('.year-card .what').innerText(), /^1 book/);
+    await p.locator('.chip').nth(0).click();
+    await p.waitForFunction(() => document.querySelectorAll('.book').length === 2);
+    // Removing it takes 2019 out of History.
+    p.once('dialog', d => d.accept());
+    await sessions('Dune').nth(0).locator('.forget').click();
+    await p.waitForFunction(() => document.querySelectorAll('.session').length === 2);
+    assert.equal(await p.locator('.years .chip', { hasText: '2019' }).count(), 0);
+    // The acquisition date is edited here too, and may be blank.
+    const acquired = book('Dune').locator('.history > .dates input');
+    await acquired.fill('');
+    assert.equal(await acquired.inputValue(), '');
+  });
+
+  test('Up next marks Want and Owned books, lists them, and clears on reading', async () => {
+    assert.equal(await book('Dune').locator('.next').count(), 0); // a Read book
+    const next = book('Emma').locator('.next');
+    assert.equal(await next.getAttribute('aria-pressed'), 'false');
+    await next.click();
+    assert.equal(await next.getAttribute('aria-pressed'), 'true');
+    const chip = p.locator('.chip', { hasText: 'Up next' });
+    assert.match(await chip.innerText(), /1/);
+    await chip.click();
+    await p.waitForFunction(() => document.querySelectorAll('.book').length === 1);
+    assert.deepEqual(await shelved(), ['Emma']);
+    assert.ok(await fits());
+    await p.reload(); // kept
+    await p.waitForSelector('.book');
+    assert.equal(await book('Emma').locator('.next').getAttribute('aria-pressed'), 'true');
+    await p.locator('.chip', { hasText: 'Up next' }).click();
+    await p.waitForFunction(() => document.querySelectorAll('.book').length === 1);
+    await book('Emma').locator('[data-status=reading]').click();
+    await p.waitForFunction(() => document.querySelectorAll('.book').length === 0);
+    assert.match(await p.locator('.chip', { hasText: 'Up next' }).innerText(), /0/);
+  });
 });

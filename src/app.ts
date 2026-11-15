@@ -1,12 +1,13 @@
 /* cuento's page: add a book by its ISBN, and the shelf, filtered and
- * searched, each book's status, dates, rating and notes. Built on spark
+ * searched (Up next among the filters), each book's status, Up next or
+ * Read again, rating, notes and history (historyView.ts). Built on spark
  * (spark/: signals, html`` templates, keyed each()).
  *
  *   books (signal) ──► shown (computed: filter + search) ──► each(row)
  *      │                                                      │
  *      └──► effect: save to localStorage   ◄── update(isbn) ──┘
  *
- * Depends on spark, isbn.ts, lookup.ts, scan.ts and shelf.ts. Working
+ * Depends on spark, isbn.ts, lookup.ts, scan.ts, shelf.ts and historyView.ts. Working
  * offline is the service worker's (public/sw.js), not the page's. */
 import {
   signal,
@@ -32,6 +33,7 @@ import { accountSection } from './accountView.ts';
 import { follow } from './account.ts';
 import { remindersSection } from './remindersView.ts';
 import { review } from './review.ts';
+import { historyEditor } from './historyView.ts';
 import { tilde, cloth } from './tilde.ts';
 import type { Found, Version } from './updates.ts';
 import {
@@ -40,7 +42,6 @@ import {
   today,
   newBook,
   withStatus,
-  withReadingDate,
   readingsInYear,
   load,
   save,
@@ -79,11 +80,14 @@ const SHORT: Record<Status, string> = {
   reading: 'Reading',
   read: 'Read',
 };
-/** What the shelf shows: every book, one status, or the books finished
- * in a year (History). */
-type Filter = 'all' | Status | number;
-/** The filters above the shelf by status. */
-const FILTERS: Filter[] = ['all', ...STATUSES];
+/** What the shelf shows: every book, one status, the books marked Up
+ * next, or the books finished in a year (History). */
+type Filter = 'all' | Status | 'next' | number;
+/** The filters above the shelf: by status, then Up next. */
+const FILTERS: Filter[] = ['all', ...STATUSES, 'next'];
+/** What each filter is called on its chip. */
+const filterLabel = (f: Filter) =>
+  f === 'all' ? 'All' : f === 'next' ? 'Up next' : LABELS[f as Status];
 
 // The shelf, saved whenever it changes.
 const [books, setBooks] = signal(load());
@@ -104,6 +108,7 @@ const [adding, setAdding] = signal<Adding | null>(null);
 /** Whether book passes filter f. */
 function passes(book: Book, f: Filter) {
   if (typeof f === 'number') return finishedIn(book, f);
+  if (f === 'next') return book.upNext;
   return f === 'all' || book.status === f;
 }
 /** Whether book has a completed reading in year. */
@@ -386,7 +391,7 @@ function toolbar() {
     </button>`;
   return html`<nav class="tools">
     <div class="filters" role="group" aria-label="Show">
-      ${FILTERS.map(f => chip(f, f === 'all' ? 'All' : LABELS[f as Status]))}
+      ${FILTERS.map(f => chip(f, filterLabel(f)))}
     </div>
     ${() =>
       years().length
@@ -432,21 +437,8 @@ function stars(book: BookGetter) {
   </span>`;
 }
 
-/** A book's dates, notes and removal, shown when it is open. */
+/** A book's dates, history, notes and removal, shown when it is open. */
 function details(book: BookGetter) {
-  const field = (key: 'added' | 'acquired' | 'started' | 'finished', label: string) =>
-    html`<label
-      >${label}
-      <input
-        type="date"
-        .value=${() => book()[key]}
-        @change=${(e: Event) =>
-          update(book().isbn, b =>
-            key === 'started' || key === 'finished'
-              ? withReadingDate(b, key, valueOf(e))
-              : { ...b, [key]: valueOf(e) },
-          )}
-    /></label>`;
   const remove = () => {
     if (confirm('Take “' + book().title + '” off your shelf?'))
       glide(() =>
@@ -458,9 +450,16 @@ function details(book: BookGetter) {
   };
   return html`<div class="details">
     <div class="dates">
-      ${field('added', 'Added')} ${field('acquired', 'Acquired')} ${field('started', 'Started')}
-      ${field('finished', 'Finished')}
+      <label
+        >Added
+        <input
+          type="date"
+          .value=${() => book().added}
+          @change=${(e: Event) =>
+            valueOf(e) && update(book().isbn, b => ({ ...b, added: valueOf(e) }))}
+      /></label>
     </div>
+    ${historyEditor(book, edit => update(book().isbn, edit))}
     <textarea
       placeholder="Notes"
       rows="3"
@@ -474,6 +473,18 @@ function details(book: BookGetter) {
     </p>
     <button class="remove" @click=${remove}>Remove from shelf</button>
   </div>`;
+}
+
+/** Marks a Want or Owned book Up next, or unmarks it. */
+function upNextToggle(book: BookGetter) {
+  const toggle = () => {
+    const change = () => update(book().isbn, b => ({ ...b, upNext: !b.upNext }));
+    if (filter() === 'next') glide(change);
+    else change();
+  };
+  return html`<button class="next" aria-pressed=${() => String(book().upNext)} @click=${toggle}>
+    <span aria-hidden="true">${() => (book().upNext ? '✓' : '+')}</span> Up next
+  </button>`;
 }
 
 /** One book on the shelf. */
@@ -518,6 +529,14 @@ function row(book: BookGetter) {
           )}
         </div>
         ${() => (book().status === 'read' ? stars(book) : null)}
+        ${() =>
+          book().status === 'read'
+            ? html`<button class="again" @click=${(e: Event) => move('reading', e)}>
+                Read again
+              </button>`
+            : book().status === 'want' || book().status === 'owned'
+              ? upNextToggle(book)
+              : null}
       </div>
       ${() => (isOpen() ? details(book) : null)}
     </div>

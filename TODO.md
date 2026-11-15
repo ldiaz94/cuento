@@ -17,17 +17,17 @@
 ## 3. Add reading history
 
 - [x] Replace the single reading period with sessions containing a start date and optional finish date.
-- [ ] Support **Read again** without losing earlier reads.
+- [x] Support **Read again** without losing earlier reads.
 - [x] Derive the last-read date and completed-read count from sessions.
-- [ ] Allow reading history to be backfilled and edited manually.
+- [x] Allow reading history to be backfilled and edited manually.
 - [x] Update yearly statistics to count each completed read.
 
 ## 4. Add Up next
 
-- [ ] Add a simple Up next marker to Want and Owned books, without manual queue ordering initially.
-- [ ] Add an **Up next** view containing marked books.
-- [ ] Clear the marker automatically when reading starts.
-- [ ] Keep the marker local, exportable and synced with the book.
+- [x] Add a simple Up next marker to Want and Owned books, without manual queue ordering initially.
+- [x] Add an **Up next** view containing marked books.
+- [x] Clear the marker automatically when reading starts.
+- [x] Keep the marker local, exportable and synced with the book.
 
 ## 5. Build Your library
 

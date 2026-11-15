@@ -12,6 +12,8 @@
  *
  * The shelf is kept in localStorage as JSON, newest first, and exported
  * and imported as {cuento: 2, exported, books}; cuento 1 files are migrated.
+ * The history is edited by withSessionDate, withPastRead and withoutSession,
+ * which keep at most one session open and the status agreeing with them.
  * Depends on nothing. Syncing between devices is sync.ts's. */
 
 /** Where a reader is with a book. Reading and read books are owned too. */
@@ -126,12 +128,70 @@ export function owns(book: Book): boolean {
   return book.status !== 'want';
 }
 
-/** Change one date on the latest session, creating it when necessary. */
-export function withReadingDate(book: Book, key: keyof Reading, value: string): Book {
+/** The sessions in order, oldest first: completed ones by when they began
+ * (or ended, when that is all that is known), and an open one last. */
+function ordered(readings: Reading[]): Reading[] {
+  const when = (r: Reading) => r.started || r.finished;
+  return [
+    ...readings.filter(r => r.finished).sort((a, b) => when(a).localeCompare(when(b))),
+    ...readings.filter(r => !r.finished),
+  ];
+}
+
+/** book with readings in their place, its mirrors kept and its status made
+ * to agree with them: opening a session makes it Reading (and not Up next);
+ * a Reading book left with none open becomes Read, or Owned with no
+ * completed read; so does a Read book left with no completed read. A Want
+ * or Owned book keeping an open session (a slip back) stays as it is. */
+function settled(book: Book, readings: Reading[]): Book {
+  const wasOpen = currentReading(book) !== null;
+  const b: Book = { ...book, readings: ordered(readings) };
+  const open = currentReading(b) !== null;
+  if (open && !wasOpen) Object.assign(b, { status: 'reading', upNext: false });
+  else if (!open && b.status === 'reading') b.status = readCount(b) ? 'read' : 'owned';
+  if (b.status === 'read' && !readCount(b)) b.status = 'owned';
+  return mirrored(b);
+}
+
+/** Why a session's dates can't stand, or '' when they can. */
+function badDates(r: Reading): string {
+  return r.started && r.finished && r.finished < r.started
+    ? 'A read can’t finish before it starts.'
+    : '';
+}
+
+/** book with one date of session index (in book.readings) set to value
+ * ('' for unknown, or for a finish: still underway); or why not, as a
+ * sentence: a finish before its start, or a second open session. */
+export function withSessionDate(
+  book: Book,
+  index: number,
+  key: keyof Reading,
+  value: string,
+): Book | string {
   const readings = book.readings.map(r => ({ ...r }));
-  if (!readings.length) readings.push({ started: '', finished: '' });
-  readings[readings.length - 1]![key] = value;
-  return mirrored({ ...book, readings });
+  const r = readings[index];
+  if (!r) return book;
+  r[key] = value;
+  if (!r.finished && readings.some((o, i) => i !== index && !o.finished))
+    return 'Only one read can be underway: finish the other first.';
+  return badDates(r) || settled(book, readings);
+}
+
+/** book with a read done before (backfilled), from started ('' when
+ * unknown) to finished; or why not, as a sentence. */
+export function withPastRead(book: Book, started: string, finished: string): Book | string {
+  if (!finished) return 'A past read needs the day it was finished.';
+  const r = { started, finished };
+  return badDates(r) || settled(book, [...book.readings.map(o => ({ ...o })), r]);
+}
+
+/** book without session index (in book.readings). */
+export function withoutSession(book: Book, index: number): Book {
+  return settled(
+    book,
+    book.readings.filter((_, i) => i !== index).map(r => ({ ...r })),
+  );
 }
 
 /** The open session, or null when there is none. */

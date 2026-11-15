@@ -18,7 +18,11 @@ import {
   lastRead,
   readCount,
   owns,
+  withSessionDate,
+  withPastRead,
+  withoutSession,
 } from '../src/shelf.ts';
+import type { Book } from '../src/shelf.ts';
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
   assert.equal(toIsbn13('0-306-40615-2'), '9780306406157');
@@ -200,6 +204,86 @@ test('reading history derives last read and completed count', () => {
   assert.equal(readCount(reread), 2);
   assert.equal(lastRead(withStatus(reread, 'reading', '2026-03-01')), '2026-02-05');
   assert.equal(readCount(withStatus(reread, 'reading', '2026-03-01')), 2);
+});
+
+/** result as a book, failing the test when it is a refusal. */
+function ok(result: Book | string): Book {
+  assert.equal(typeof result, 'object', String(result));
+  return result as Book;
+}
+
+test('Read again starts a session and keeps every earlier read', () => {
+  const read = newBook('9780306406157', { title: 'T' }, 'read', '2025-01-02');
+  const again = withStatus(read, 'reading', '2026-04-01');
+  assert.equal(again.status, 'reading');
+  assert.deepEqual(again.readings, [
+    { started: '2025-01-02', finished: '2025-01-02' },
+    { started: '2026-04-01', finished: '' },
+  ]);
+  assert.equal(readCount(again), 1);
+  assert.equal(isBook(again), true);
+});
+
+test('history: dates edited, kept in order, and refused when they cannot stand', () => {
+  const read = newBook('9780306406157', { title: 'T' }, 'read', '2026-02-02');
+  const edited = ok(withSessionDate(read, 0, 'started', '2026-01-20'));
+  assert.deepEqual(edited.readings, [{ started: '2026-01-20', finished: '2026-02-02' }]);
+  assert.equal(edited.started, '2026-01-20');
+  assert.match(withSessionDate(read, 0, 'started', '2026-03-01') as string, /before it starts/);
+  const backfilled = ok(withPastRead(edited, '2019-05-01', '2019-06-01'));
+  assert.deepEqual(
+    backfilled.readings.map(r => r.finished),
+    ['2019-06-01', '2026-02-02'],
+  ); // oldest first, whatever order they came in
+  assert.deepEqual([backfilled.started, backfilled.finished], ['2026-01-20', '2026-02-02']);
+  assert.equal(readCount(backfilled), 2);
+  assert.equal(lastRead(backfilled), '2026-02-02');
+  assert.equal(ok(withPastRead(backfilled, '', '2020-01-01')).readings[1]?.started, ''); // start unknown
+  assert.match(withPastRead(backfilled, '2020-01-01', '') as string, /finished/);
+  assert.match(withPastRead(backfilled, '2020-02-01', '2020-01-01') as string, /before it starts/);
+  // Moving a read later than another reorders them, and the mirrors follow.
+  const later = ok(withSessionDate(backfilled, 0, 'finished', '2026-05-01'));
+  const moved = ok(withSessionDate(later, 0, 'started', '2026-04-01'));
+  assert.deepEqual(moved.readings[1], { started: '2026-04-01', finished: '2026-05-01' });
+  assert.deepEqual([moved.started, moved.finished], ['2026-04-01', '2026-05-01']);
+  assert.equal(isBook(moved), true);
+});
+
+test('history: one read underway at most, and the status follows the history', () => {
+  const read = ok(
+    withPastRead(newBook('9780306406157', { title: 'T' }, 'read', '2026-02-02'), '', '2025-01-01'),
+  );
+  // Clearing the latest finish: still reading it.
+  const reopened = ok(withSessionDate({ ...read, upNext: true }, 1, 'finished', ''));
+  assert.equal(reopened.status, 'reading');
+  assert.equal(reopened.upNext, false);
+  assert.equal(reopened.finished, '');
+  assert.match(withSessionDate(reopened, 0, 'finished', '') as string, /one read/);
+  // Finishing the open one by its date: Read.
+  assert.equal(ok(withSessionDate(reopened, 1, 'finished', '2026-03-01')).status, 'read');
+  // Removing the open session of a Reading book: Read with earlier reads, else Owned.
+  const removed = withoutSession(reopened, 1);
+  assert.deepEqual([removed.status, removed.readings.length], ['read', 1]);
+  assert.equal(isBook(removed), true);
+  const first = withStatus(newBook('9780804429573', { title: 'U' }), 'reading', '2026-01-01');
+  const dropped = withoutSession(first, 0);
+  assert.deepEqual([dropped.status, dropped.started], ['owned', '']);
+  // Removing a Read book's only read: Owned.
+  assert.equal(withoutSession(newBook(read.isbn, { title: 'T' }, 'read'), 0).status, 'owned');
+  // A past read on a Want book leaves it wanted; a slip back keeps its open session.
+  const wanted = ok(withPastRead(newBook(read.isbn, { title: 'T' }), '', '2020-01-01'));
+  assert.equal(wanted.status, 'want');
+  const slip = withStatus(first, 'want', '2026-01-02');
+  assert.equal(ok(withSessionDate(slip, 0, 'started', '2025-12-30')).status, 'want');
+});
+
+test('Up next and history travel in exports and through a merge', () => {
+  const next = { ...newBook('9780306406157', { title: 'T' }, 'owned', '2026-01-01'), upNext: true };
+  const back = imported(exported([next]))[0];
+  assert.equal(back?.upNext, true);
+  assert.deepEqual(merge([], [next])[0], next);
+  const reading = withStatus(next, 'reading', '2026-01-02');
+  assert.equal(imported(exported([reading]))[0]?.upNext, false);
 });
 
 test('scanned codes: only an ISBN-13 with the right check digit is a book', () => {

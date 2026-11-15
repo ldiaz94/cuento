@@ -127,6 +127,25 @@ test('store: legacy replies hide live v2 books, current replies include them', (
 /** Settings holding goals, written at updated. */
 const settings = (goals: Goals, updated: number) => ({ data: { goals }, updated });
 
+test('Up next and the reading history travel through the store to another device', () => {
+  const sql = store();
+  const next = { ...book(EMMA, 'Emma'), upNext: true };
+  const reread = withStatus(withStatus(book(DUNE, 'Dune'), 'read', '2025-03-01'), 'reading');
+  const mine = [next, reread];
+  const sent = diff(mine, { seq: 0, books: {} }, 1);
+  apply(sql, sent);
+  const mySnapshot = recorded({ seq: 0, books: {} }, sent, 2);
+  const r = received([], { seq: 0, books: {} }, changedSince(sql, 0, 2) as Reply);
+  const theirs = new Map(r.books?.map(b => [b.isbn, b]));
+  assert.deepEqual(theirs.get(EMMA), next);
+  assert.deepEqual(theirs.get(DUNE)?.readings, reread.readings);
+  // Unmarked on the other device, it comes back unmarked.
+  const unmarked = [{ ...theirs.get(EMMA)!, upNext: false }, theirs.get(DUNE)!];
+  apply(sql, diff(unmarked, r.snapshot, 2));
+  const back = received(mine, mySnapshot, changedSince(sql, 2, 2) as Reply);
+  assert.equal(back.books?.find(b => b.isbn === EMMA)?.upNext, false);
+});
+
 test('store: settings, the later write wins whole, and a since query returns them', () => {
   const sql = store();
   apply(sql, [{ isbn: DUNE, book: book(DUNE), updated: 1 }]); // seq 1
