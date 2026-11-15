@@ -72,6 +72,24 @@ test('stores search by ISBN, or by title and first author without one', () => {
   assert.ok(!bare.some(l => l.url.includes('Other')));
 });
 
+test('Barnes & Noble and Casa del Libro search their sites through DuckDuckGo', () => {
+  const site = (id: string, isbn: string) =>
+    STORES.find(s => s.id === id)!.search({ isbn, title: '', author: '' });
+  assert.equal(
+    site('bn', book.isbn),
+    'https://duckduckgo.com/?q=' + encodeURIComponent('site:barnesandnoble.com 9780141182636'),
+  );
+  assert.equal(
+    site('casadellibro-es', book.isbn),
+    'https://duckduckgo.com/?q=' + encodeURIComponent('site:casadellibro.com 9780141182636'),
+  );
+  assert.equal(STORES.find(s => s.id === 'bn')!.byIsbn, true);
+  const bare = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US');
+  assert.ok(
+    bare.find(l => l.store === 'bn')!.url.includes(encodeURIComponent('site:barnesandnoble.com')),
+  );
+});
+
 test('query parts are encoded', () => {
   const l = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US')[0]!;
   assert.ok(!l.url.includes(' ') && !l.url.includes('& '));

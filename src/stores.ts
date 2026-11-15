@@ -78,6 +78,11 @@ export function term(q: Query, byIsbn: boolean): string {
   return byIsbn && q.isbn ? q.isbn : [q.title, q.author].filter(Boolean).join(' ');
 }
 
+/** A DuckDuckGo search for the book's ISBN, limited to one site. */
+function siteSearch(site: string, q: Query): string {
+  return 'https://duckduckgo.com/?q=' + enc('site:' + site + ' ' + term(q, true));
+}
+
 /** A store whose search is base + the encoded term. */
 function shop(
   id: string,
@@ -114,7 +119,11 @@ export const STORES: readonly Store[] = [
     ['print'],
     'https://uk.bookshop.org/search?keywords=',
   ),
-  shop('bn', 'Barnes & Noble', ['US'], BOTH, 'https://www.barnesandnoble.com/s/', true),
+  // Its own search couldn't be confirmed (2026-11): a site search instead.
+  {
+    ...shop('bn', 'Barnes & Noble', ['US'], BOTH, '', true),
+    search: q => siteSearch('barnesandnoble.com', q),
+  },
   shop(
     'waterstones',
     'Waterstones',
@@ -127,14 +136,11 @@ export const STORES: readonly Store[] = [
   shop('amazon-es', 'Amazon', ['ES'], BOTH, 'https://www.amazon.es/s?k='),
   shop('amazon-mx', 'Amazon', ['MX'], BOTH, 'https://www.amazon.com.mx/s?k='),
   shop('amazon', 'Amazon', ['US', '*'], BOTH, 'https://www.amazon.com/s?k='),
-  shop(
-    'casadellibro-es',
-    'Casa del Libro',
-    ['ES'],
-    BOTH,
-    'https://www.casadellibro.com/busqueda-generica?busqueda=',
-    true,
-  ),
+  // Its own search couldn't be confirmed (2026-11): a site search instead.
+  {
+    ...shop('casadellibro-es', 'Casa del Libro', ['ES'], BOTH, '', true),
+    search: q => siteSearch('casadellibro.com', q),
+  },
   {
     // The Mexican store is a VTEX site at latam.casadellibro.com; its search is the term as the path.
     ...shop('casadellibro-mx', 'Casa del Libro', ['MX'], BOTH, ''),
