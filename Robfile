@@ -32,7 +32,7 @@ task check: build
     {bin}/tsc -p test
     npx wrangler types worker/worker-configuration.d.ts >/dev/null
     {bin}/tsc -p worker
-    node --test test/unit.test.ts test/sync.test.ts test/accounts.test.ts test/reminders.test.ts test/review.test.ts test/browser.test.ts test/review-browser.test.ts test/scan.test.ts test/reminders-browser.test.ts
+    node --test test/unit.test.ts test/sync.test.ts test/accounts.test.ts test/reminders.test.ts test/review.test.ts test/buy.test.ts test/browser.test.ts test/review-browser.test.ts test/scan.test.ts test/reminders-browser.test.ts
 
 # The sources as Prettier lays them out (spark is spark's own).
 task fmt:
