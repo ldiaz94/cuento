@@ -4,7 +4,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { whereToBuy, DISCLAIMER } from '../src/buy.ts';
-import { NO_PREFS, STORES, readPrefs, regionOf, suggestedStores } from '../src/stores.ts';
+import {
+  NO_PREFS,
+  STORES,
+  readPrefs,
+  regionOf,
+  storeNamed,
+  suggestedStores,
+} from '../src/stores.ts';
 import type { ShoppingPrefs } from '../src/stores.ts';
 import type { Book } from '../src/shelf.ts';
 
@@ -161,4 +168,16 @@ test('readPrefs tolerates anything', () => {
     readPrefs({ stores: Array.from({ length: 50 }, (_, i) => 's' + i) }).stores.length,
     20,
   );
+});
+
+test('favourites saved by name resolve to the reader’s region, and ids stay exact', () => {
+  const stores = ['Amazon', 'Bookshop.org', 'Casa del Libro'];
+  const gb = whereToBuy(book, prefs({ stores }), 'GB');
+  assert.deepEqual(ids(gb).slice(0, 2), ['amazon-uk', 'bookshop-gb']);
+  assert.match(gb[0]!.url, /amazon\.co\.uk/);
+  const mx = whereToBuy(book, prefs({ stores }), 'MX');
+  assert.equal(ids(mx)[0], 'amazon-mx');
+  assert.ok(ids(mx).includes('casadellibro-mx'));
+  assert.equal(ids(whereToBuy(book, prefs({ stores: ['amazon-mx'] }), 'GB'))[0], 'amazon-mx');
+  assert.equal(storeNamed('Amazon', 'DE')?.id, 'amazon');
 });

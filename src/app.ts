@@ -49,6 +49,7 @@ import {
   exported,
   imported,
   merge,
+  isDate,
 } from './shelf.ts';
 import type { Book, Status } from './shelf.ts';
 
@@ -455,9 +456,12 @@ function details(book: BookGetter) {
         >Added
         <input
           type="date"
+          max="9999-12-31"
           .value=${() => book().added}
-          @change=${(e: Event) =>
-            valueOf(e) && update(book().isbn, b => ({ ...b, added: valueOf(e) }))}
+          @change=${(e: Event) => {
+            if (isDate(valueOf(e), false)) update(book().isbn, b => ({ ...b, added: valueOf(e) }));
+            else (e.target as HTMLInputElement).value = book().added;
+          }}
       /></label>
     </div>
     ${historyEditor(book, edit => update(book().isbn, edit))}

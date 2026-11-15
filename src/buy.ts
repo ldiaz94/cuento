@@ -41,7 +41,7 @@ export function whereToBuy(book: Book, prefs: ShoppingPrefs, region: string): Bu
     entries.push({ store, name });
   };
   for (const fav of prefs.stores) {
-    const store = storeNamed(fav);
+    const store = storeNamed(fav, region);
     add(store ?? null, store ? store.name : fav);
   }
   const rest = suggestedStores(region);

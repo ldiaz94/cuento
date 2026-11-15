@@ -187,8 +187,15 @@ export function suggestedStores(region: string): Store[] {
   return out;
 }
 
-/** The catalogue store a favourite names, by id or by name; undefined for a custom one. */
-export function storeNamed(name: string): Store | undefined {
+/** The catalogue store a favourite names, by name or id; undefined for a custom one. Names are shared between countries, so a name resolves to the store for the region, then an anywhere one, then any. */
+export function storeNamed(name: string, region = ''): Store | undefined {
   const n = name.trim().toLowerCase();
-  return STORES.find(s => s.id === n) ?? STORES.find(s => s.name.toLowerCase() === n);
+  const r = region.toUpperCase();
+  const named = STORES.filter(s => s.name.toLowerCase() === n);
+  return (
+    (r ? named.find(s => s.regions.includes(r)) : undefined) ??
+    named.find(s => s.regions.includes('*')) ??
+    named[0] ??
+    STORES.find(s => s.id === n)
+  );
 }

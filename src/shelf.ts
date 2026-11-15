@@ -148,10 +148,13 @@ function settled(book: Book, readings: Reading[]): Book {
   const b: Book = { ...book, readings: ordered(readings) };
   const open = currentReading(b) !== null;
   if (open && !wasOpen) Object.assign(b, { status: 'reading', upNext: false });
-  else if (!open && b.status === 'reading') b.status = readCount(b) ? 'read' : 'owned';
+  else if (wasOpen && !open && b.status === 'reading') b.status = readCount(b) ? 'read' : 'owned';
   if (b.status === 'read' && !readCount(b)) b.status = 'owned';
   return mirrored(b);
 }
+
+/** Said when a date isn't a real day. */
+const NOT_A_DAY = 'That date isn’t a real day.';
 
 /** Why a session's dates can't stand, or '' when they can. */
 function badDates(r: Reading): string {
@@ -172,6 +175,7 @@ export function withSessionDate(
   const readings = book.readings.map(r => ({ ...r }));
   const r = readings[index];
   if (!r) return book;
+  if (!date(value)) return NOT_A_DAY;
   r[key] = value;
   if (!r.finished && readings.some((o, i) => i !== index && !o.finished))
     return 'Only one read can be underway: finish the other first.';
@@ -182,6 +186,7 @@ export function withSessionDate(
  * unknown) to finished; or why not, as a sentence. */
 export function withPastRead(book: Book, started: string, finished: string): Book | string {
   if (!finished) return 'A past read needs the day it was finished.';
+  if (!date(started) || !date(finished)) return NOT_A_DAY;
   const r = { started, finished };
   return badDates(r) || settled(book, [...book.readings.map(o => ({ ...o })), r]);
 }
@@ -251,6 +256,11 @@ function date(value: unknown, blank = true): boolean {
   return (
     typeof value === 'string' && ((blank && value === '') || /^\d{4}-\d{2}-\d{2}$/.test(value))
   );
+}
+
+/** Whether value is a date the shelf can keep: YYYY-MM-DD, or '' when blank is allowed. */
+export function isDate(value: string, blank = true): boolean {
+  return date(value, blank);
 }
 
 /** A current book, or a legacy one migrated to v2; null when unusable. */

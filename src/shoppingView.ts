@@ -12,7 +12,7 @@
  * prices, stock and GPS. */
 import { signal, html } from './spark/index.js';
 import type { Book } from './shelf.ts';
-import { readPrefs, regionOf, suggestedStores } from './stores.ts';
+import { readPrefs, regionOf, storeNamed, suggestedStores } from './stores.ts';
 import type { ShoppingPrefs } from './stores.ts';
 import { whereToBuy, DISCLAIMER } from './buy.ts';
 
@@ -53,7 +53,15 @@ const FORMATS: ['' | 'print' | 'ebook', string][] = [
 /** The Shopping section of Settings. */
 export function shoppingSection(): Node {
   const [custom, setCustom] = signal('');
-  const has = (name: string) => prefs().stores.some(s => s.toLowerCase() === name.toLowerCase());
+  // A favourite is a catalogue id or a name; two are the same store when they resolve to one.
+  const has = (name: string) => {
+    const store = storeNamed(name, region());
+    return prefs().stores.some(f => {
+      const other = storeNamed(f, region());
+      return store && other ? store.id === other.id : f.toLowerCase() === name.toLowerCase();
+    });
+  };
+  const shown = (fav: string) => storeNamed(fav, region())?.name ?? fav;
   const add = (name: string) => {
     const n = name.trim();
     if (n && !has(n)) change({ stores: [...prefs().stores, n] });
@@ -73,10 +81,10 @@ export function shoppingSection(): Node {
   };
   const suggestions = () =>
     suggestedStores(region())
-      .filter(s => !has(s.name))
+      .filter(s => !has(s.id))
       .map(
         s =>
-          html`<button type="button" class="chip" @click=${() => add(s.name)}>+ ${s.name}</button>`,
+          html`<button type="button" class="chip" @click=${() => add(s.id)}>+ ${s.name}</button>`,
       );
   return html`<section class="shopping">
     <h3>Shopping</h3>
@@ -97,29 +105,21 @@ export function shoppingSection(): Node {
     </div>
     <ol class="shop-stores" aria-label="Favourite stores">
       ${() =>
-        prefs().stores.map(
-          (name, i) =>
-            html`<li>
-              <span>${name}</span>
-              <button
-                type="button"
-                aria-label=${'Move ' + name + ' up'}
-                @click=${() => move(i, -1)}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                aria-label=${'Move ' + name + ' down'}
-                @click=${() => move(i, 1)}
-              >
-                ↓
-              </button>
-              <button type="button" aria-label=${'Remove ' + name} @click=${() => remove(i)}>
-                ✕
-              </button>
-            </li>`,
-        )}
+        prefs().stores.map((fav, i) => {
+          const name = shown(fav);
+          return html`<li>
+            <span>${name}</span>
+            <button type="button" aria-label=${'Move ' + name + ' up'} @click=${() => move(i, -1)}>
+              ↑
+            </button>
+            <button type="button" aria-label=${'Move ' + name + ' down'} @click=${() => move(i, 1)}>
+              ↓
+            </button>
+            <button type="button" aria-label=${'Remove ' + name} @click=${() => remove(i)}>
+              ✕
+            </button>
+          </li>`;
+        })}
     </ol>
     <div class="shop-suggest">${suggestions}</div>
     <form class="shop-custom" @submit=${addCustom}>

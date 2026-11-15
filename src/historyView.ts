@@ -15,7 +15,7 @@
  * rating and notes, which are the caller's. */
 import { signal, html } from './spark/index.js';
 import type { Getter } from './spark/index.js';
-import { withSessionDate, withPastRead, withoutSession } from './shelf.ts';
+import { isDate, withSessionDate, withPastRead, withoutSession } from './shelf.ts';
 import type { Book, Reading } from './shelf.ts';
 
 /** The text of the field an event came from. */
@@ -49,6 +49,7 @@ export function historyEditor(book: Getter<Book>, change: (edit: (b: Book) => Bo
         >${label}
         <input
           type="date"
+          max="9999-12-31"
           .value=${r[key]}
           @change=${(e: Event) =>
             attempt(
@@ -81,11 +82,19 @@ export function historyEditor(book: Getter<Book>, change: (edit: (b: Book) => Bo
       <div class="dates">
         <label
           >Started
-          <input type="date" .value=${started} @change=${(e: Event) => setStarted(valueOf(e))}
+          <input
+            type="date"
+            max="9999-12-31"
+            .value=${started}
+            @change=${(e: Event) => setStarted(valueOf(e))}
         /></label>
         <label
           >Finished
-          <input type="date" .value=${finished} @change=${(e: Event) => setFinished(valueOf(e))}
+          <input
+            type="date"
+            max="9999-12-31"
+            .value=${finished}
+            @change=${(e: Event) => setFinished(valueOf(e))}
         /></label>
       </div>
       <div class="past-actions">
@@ -101,8 +110,13 @@ export function historyEditor(book: Getter<Book>, change: (edit: (b: Book) => Bo
         >Acquired
         <input
           type="date"
+          max="9999-12-31"
           .value=${() => book().acquired}
-          @change=${(e: Event) => change(b => ({ ...b, acquired: valueOf(e) }))}
+          max="9999-12-31"
+          @change=${(e: Event) => {
+            if (isDate(valueOf(e))) change(b => ({ ...b, acquired: valueOf(e) }));
+            else (e.target as HTMLInputElement).value = book().acquired;
+          }}
       /></label>
     </div>
     <h3>Reading history</h3>

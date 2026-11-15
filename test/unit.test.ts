@@ -21,6 +21,7 @@ import {
   withSessionDate,
   withPastRead,
   withoutSession,
+  isDate,
 } from '../src/shelf.ts';
 import type { Book } from '../src/shelf.ts';
 
@@ -342,4 +343,29 @@ test('search: Google Books when Open Library finds none; ISBN-13 preferred', asy
 test('search: unreachable services throw', async () => {
   const down = fakeFetch({ ol: new TypeError('offline'), gb: new TypeError('offline') });
   await assert.rejects(search('dune', down.get), /Could not reach/);
+});
+
+test('malformed dates are refused rather than saved, and isDate says which', () => {
+  assert.ok(isDate('2026-02-03') && isDate('') && !isDate('', false));
+  assert.ok(!isDate('20260-02-03') && !isDate('2026-2-3') && !isDate('x'));
+  const b = newBook('9780306406157', { title: 'T' }, 'read', '2026-02-02');
+  assert.match(withPastRead(b, '', '123456-01-01') as string, /real day/);
+  assert.match(withPastRead(b, '20190-01-01', '2020-01-01') as string, /real day/);
+  assert.match(withSessionDate(b, 0, 'finished', '123456-01-01') as string, /real day/);
+  assert.equal(typeof withSessionDate(b, 0, 'started', ''), 'object');
+});
+
+test('a past read keeps a migrated legacy Reading book Reading', () => {
+  const legacy = readBook({
+    v: 1,
+    isbn: '9780306406157',
+    title: 'T',
+    status: 'reading',
+    added: '2026-01-01',
+  });
+  assert.equal(legacy?.status, 'reading');
+  assert.deepEqual(legacy?.readings, []);
+  const done = withPastRead(legacy as Book, '2019-05-01', '2019-06-01') as Book;
+  assert.equal(done.status, 'reading');
+  assert.equal(done.readings.length, 1);
 });
