@@ -47,6 +47,18 @@ test('stores search by ISBN, or by title and first author without one', () => {
     }),
     'https://latam.casadellibro.com/9780141182636?_q=9780141182636&map=ft',
   );
+  assert.equal(
+    STORES.find(s => s.id === 'gandhi')!.search({
+      isbn: book.isbn,
+      title: 'The Great Gatsby & Co',
+      author: 'F. Scott Fitzgerald',
+    }),
+    'https://www.gandhi.com.mx/' +
+      encodeURIComponent('The Great Gatsby & Co F. Scott Fitzgerald') +
+      '?_q=' +
+      encodeURIComponent('The Great Gatsby & Co F. Scott Fitzgerald') +
+      '&map=ft',
+  );
   const bare = whereToBuy({ ...book, isbn: '' }, NO_PREFS, 'US');
   const want = '=' + encodeURIComponent('The Great Gatsby & Co F. Scott Fitzgerald');
   assert.ok(bare.find(l => l.store === 'bookshop-us')!.url.endsWith(want));

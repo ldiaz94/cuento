@@ -151,14 +151,15 @@ export const STORES: readonly Store[] = [
     'https://www.fnac.es/SearchResult/ResultList.aspx?Search=',
     true,
   ),
-  shop(
-    'gandhi',
-    'Gandhi',
-    ['MX'],
-    BOTH,
-    'https://www.gandhi.com.mx/catalogsearch/result/?q=',
-    true,
-  ),
+  {
+    // A VTEX site: its search is the text as the path, repeated as _q. Searched by title and author.
+    ...shop('gandhi', 'Gandhi', ['MX'], BOTH, '', true),
+    byIsbn: false,
+    search: q => {
+      const t = enc(term(q, false));
+      return `https://www.gandhi.com.mx/${t}?_q=${t}&map=ft`;
+    },
+  },
   shop('kobo', 'Kobo', ['*'], ['ebook'], 'https://www.kobo.com/us/en/search?query='),
   shop(
     'google-play',
