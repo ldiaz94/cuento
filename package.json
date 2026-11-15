@@ -12,6 +12,7 @@
     "prettier": "^3.6.2",
     "qrcode-generator": "^2.0.4",
     "typescript": "5.9.3",
+    "wrangler": "4.162.0",
     "zxing-wasm": "^3.1.6"
   },
   "dependencies": {

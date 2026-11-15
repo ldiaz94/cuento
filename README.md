@@ -40,7 +40,7 @@ the app at `/app/`.
 Open the deployed page, or run your own:
 
 ```sh
-npm install           # TypeScript, Prettier, playwright-core: tools only
+npm install           # TypeScript, Prettier, playwright-core, Wrangler: tools only
 robbie build          # compiles src/ into build/site/
 robbie serve          # http://localhost:8080/
 robbie check          # types, unit tests, the page in headless Chromium
