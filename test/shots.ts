@@ -45,6 +45,7 @@ for (const scheme of ['light', 'dark'] as const) {
     viewport: { width: 390, height: 720 },
     deviceScaleFactor: 2,
     colorScheme: scheme,
+    reducedMotion: 'reduce', // no half-faded entrance in the picture
   });
   // A fixed "today", so "read this year" counts the same books every run.
   await page.clock.setFixedTime(new Date('2026-11-13T12:00:00'));
@@ -55,6 +56,7 @@ for (const scheme of ['light', 'dark'] as const) {
   }, BOOKS);
   await page.reload();
   await page.locator('.book').nth(1).locator('.title').click();
+  await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({ path: 'doc/img/shelf-' + scheme + '.png' });
 }
 await browser.close();

@@ -174,6 +174,9 @@ test('it fits a 390px phone with a book open, light and dark', async () => {
     });
     assert.notEqual(bg, ink, scheme + ': a book card is unreadable');
   }
+  await page.setViewportSize({ width: 320, height: 640 });
+  assert.ok(await fits(), 'the library scrolls sideways at 320px');
+  await page.setViewportSize({ width: 390, height: 844 });
   const dark = await page.evaluate(
     () => getComputedStyle(document.querySelector('.volume')!).backgroundColor,
   );

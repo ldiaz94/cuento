@@ -108,6 +108,9 @@ Five ideas, a module each, read in this order:
    books are a signal; a computed filters and searches them; spark's keyed
    `each()` keeps one row per book, updated in place.
 
+Where to buy ([src/buy.ts](src/buy.ts)) builds links to searches at the
+stores, not prices or stock: nothing fetches either.
+
 Beyond the page, four more, each a module or two:
 
 - **A year, told as a story** ([src/review.ts](src/review.ts)): pure
