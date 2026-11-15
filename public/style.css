@@ -1221,6 +1221,88 @@ h1 {
   gap: 8px;
 }
 
+/* Shelf or Library (app.ts): two halves, the one shown raised. */
+.views {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--paper-2);
+}
+.views button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+}
+.views button[aria-pressed='true'] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 3px #0000001f;
+}
+
+/* Your library (libraryView.ts): its orders, then a card per book with
+   its dates in three columns. */
+.library-tools input[type='search'] {
+  width: 100%;
+}
+.sorts {
+  align-items: center;
+}
+.sorts .label {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sorts .dir:empty {
+  display: none;
+}
+.volume {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.volume.open {
+  outline: 2px solid var(--accent-soft);
+}
+.volume-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+}
+.volume .has {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.when {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.when dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.when dd {
+  margin: 0;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
 .remove {
   justify-self: start;
   border-color: transparent;

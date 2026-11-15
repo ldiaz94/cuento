@@ -1,5 +1,6 @@
 /* The pure modules on their own: ISBN check digits, the lookup's fallback
- * and its offline case, the dates a status brings, and imports. */
+ * and its offline case, the dates a status brings, imports, and Your
+ * library's search and orders. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toIsbn13, show } from '../src/isbn.ts';
@@ -23,6 +24,7 @@ import {
   withoutSession,
 } from '../src/shelf.ts';
 import type { Book } from '../src/shelf.ts';
+import { library, matches, sorted, shownDate } from '../src/library.ts';
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
   assert.equal(toIsbn13('0-306-40615-2'), '9780306406157');
@@ -342,4 +344,75 @@ test('search: Google Books when Open Library finds none; ISBN-13 preferred', asy
 test('search: unreachable services throw', async () => {
   const down = fakeFetch({ ol: new TypeError('offline'), gb: new TypeError('offline') });
   await assert.rejects(search('dune', down.get), /Could not reach/);
+});
+
+/** A small library: Dune (read twice), Emma (owned, no acquisition date,
+ * Up next), Ulysses (reading, never finished) and Zadie (wanted). */
+function shelfOfFour(): Book[] {
+  const dune = newBook(
+    '9780306406157',
+    { title: 'Dune', authors: ['Frank Herbert'] },
+    'owned',
+    '2024-05-01',
+  );
+  const read = withStatus(withStatus(dune, 'read', '2025-01-10'), 'reading', '2026-02-01');
+  return [
+    withStatus(read, 'read', '2026-02-20'),
+    {
+      ...newBook('9780804429573', { title: 'Emma' }, 'owned', '2025-03-03'),
+      acquired: '',
+      upNext: true,
+    },
+    withStatus(
+      newBook('9791090636071', { title: 'Ulysses' }, 'owned', '2026-01-01'),
+      'reading',
+      '2026-01-02',
+    ),
+    newBook('9780261103344', { title: 'Zadie' }, 'want', '2026-01-01'),
+  ];
+}
+const titlesOf = (books: Book[]) => books.map(b => b.title);
+const all = { search: '', sort: 'title' as const, reverse: false, upNext: false };
+
+test('library: only the books owned, and Up next among them', () => {
+  const books = shelfOfFour();
+  assert.deepEqual(titlesOf(library(books, all)), ['Dune', 'Emma', 'Ulysses']);
+  assert.deepEqual(titlesOf(library(books, { ...all, upNext: true })), ['Emma']);
+  const wanted = { ...books[3]!, upNext: true };
+  assert.deepEqual(titlesOf(library([wanted], { ...all, upNext: true })), []);
+});
+
+test('library search: title, author, and the ISBN in any form', () => {
+  const dune = shelfOfFour()[0]!;
+  for (const s of [
+    'dune',
+    'HERBERT',
+    'frank dune',
+    '9780306406157',
+    '978-0-306-40615-7',
+    '0-306-40615-2',
+    '0306406152',
+    '30640',
+  ])
+    assert.ok(matches(dune, s), s);
+  for (const s of ['emma', '0804429573', '9780306406158', 'dune emma'])
+    assert.ok(!matches(dune, s), s);
+  assert.ok(matches(shelfOfFour()[1]!, '080442957X'));
+});
+
+test('library sorts: titles, acquired and last read, unknown dates last both ways', () => {
+  const books = shelfOfFour();
+  assert.deepEqual(titlesOf(sorted(books, 'title')), ['Dune', 'Emma', 'Ulysses', 'Zadie']);
+  assert.deepEqual(titlesOf(sorted(books, 'title', true)), ['Zadie', 'Ulysses', 'Emma', 'Dune']);
+  const owned = library(books, all);
+  assert.deepEqual(titlesOf(sorted(owned, 'acquired')), ['Ulysses', 'Dune', 'Emma']);
+  assert.deepEqual(titlesOf(sorted(owned, 'acquired', true)), ['Dune', 'Ulysses', 'Emma']);
+  assert.deepEqual(titlesOf(sorted(owned, 'lastRead')), ['Dune', 'Emma', 'Ulysses']);
+  assert.deepEqual(titlesOf(sorted(owned, 'lastRead', true)), ['Dune', 'Emma', 'Ulysses']);
+  assert.equal(owned.length, 3); // sorting leaves the list given alone
+});
+
+test('library dates read as dates, unknown ones as a dash', () => {
+  assert.equal(shownDate(''), '—');
+  assert.equal(shownDate('2026-03-03', 'en-GB'), '3 Mar 2026');
 });
