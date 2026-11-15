@@ -1362,3 +1362,59 @@ h1 {
     transition: none !important;
   }
 }
+
+/* ---- shopping: preferences in Settings, Where to buy in a Want book (shoppingView.ts) ---- */
+
+.shop-format,
+.shop-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.shop-stores {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shop-stores li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.shop-stores li span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.shop-custom {
+  display: flex;
+  gap: 8px;
+}
+.shop-custom input {
+  flex: 1;
+  min-width: 0;
+}
+.shop-location {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.buy {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.buy-links {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.buy-links a {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}

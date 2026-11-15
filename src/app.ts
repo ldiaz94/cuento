@@ -32,6 +32,7 @@ import { syncSection } from './syncView.ts';
 import { accountSection } from './accountView.ts';
 import { follow } from './account.ts';
 import { remindersSection } from './remindersView.ts';
+import { shoppingSection, whereToBuySection } from './shoppingView.ts';
 import { review } from './review.ts';
 import { historyEditor } from './historyView.ts';
 import { tilde, cloth } from './tilde.ts';
@@ -466,6 +467,7 @@ function details(book: BookGetter) {
       .value=${() => book().notes}
       @change=${(e: Event) => update(book().isbn, b => ({ ...b, notes: valueOf(e) }))}
     ></textarea>
+    ${whereToBuySection(book)}
     <p class="meta">
       ISBN
       ${show(book().isbn)}${() => (book().pages ? ' · ' + book().pages + ' pages' : '')}${() =>
@@ -676,7 +678,7 @@ function settings() {
         </p>
         ${backup()}
       </section>
-      ${accountSection()} ${syncSection()} ${remindersSection()}
+      ${accountSection()} ${syncSection()} ${remindersSection()} ${shoppingSection()}
       <section>
         <h3>Goal</h3>
         <label class="goal-field"
