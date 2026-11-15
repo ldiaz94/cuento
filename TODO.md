@@ -40,17 +40,17 @@
 
 ## 6. Add shopping preferences
 
-- [ ] Add an optional format preference: print or ebook.
-- [ ] Add optional favourite stores, with regional suggestions and custom entries.
-- [ ] Add an optional manually entered location, without requiring GPS.
-- [ ] Keep location device-only initially.
+- [x] Add an optional format preference: print or ebook.
+- [x] Add optional favourite stores, with regional suggestions and custom entries.
+- [x] Add an optional manually entered location, without requiring GPS.
+- [x] Keep location device-only initially.
 
 ## 7. Add Where to buy for Want books
 
-- [ ] Generate retailer search links using ISBN, with title and author as a fallback.
-- [ ] Include nearby-store searches when location is supplied.
-- [ ] Order results using format and favourite-store preferences.
-- [ ] Label results as searches, not confirmed prices or availability.
+- [x] Generate retailer search links using ISBN, with title and author as a fallback.
+- [x] Include nearby-store searches when location is supplied.
+- [x] Order results using format and favourite-store preferences.
+- [x] Label results as searches, not confirmed prices or availability.
 
 ## 8. Test and release
 
