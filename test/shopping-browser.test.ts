@@ -105,8 +105,14 @@ test('a location adds nearby links after the online ones', async () => {
   assert.ok(labels.some(l => l.includes('Leeds')));
 });
 
-test('it fits at 390px in light and dark, and only Want books have it', async () => {
-  for (const scheme of ['light', 'dark'] as const) {
+test('it fits at 390px and 320px in light and dark, and only Want books have it', async () => {
+  for (const [scheme, width] of [
+    ['light', 390],
+    ['dark', 390],
+    ['light', 320],
+    ['dark', 320],
+  ] as const) {
+    await page.setViewportSize({ width, height: 844 });
     await page.emulateMedia({ colorScheme: scheme });
     await reveal();
     assert.equal(
@@ -116,7 +122,7 @@ test('it fits at 390px in light and dark, and only Want books have it', async ()
         ),
       ),
       false,
-      scheme + ': Where to buy runs off the screen',
+      `${scheme} ${width}: Where to buy runs off the screen`,
     );
     await page.click('.gear');
     await page.waitForSelector('.shopping');
@@ -126,9 +132,11 @@ test('it fits at 390px in light and dark, and only Want books have it', async ()
         return s.scrollWidth > s.clientWidth;
       }),
       false,
+      `${scheme} ${width}: Settings scrolls sideways`,
     );
     await page.click('.settings .done');
   }
+  await page.setViewportSize({ width: 390, height: 844 });
   for (const status of ['owned', 'reading', 'read']) {
     await page.click(`.book [data-status=${status}]`);
     assert.equal(await page.$('.buy-toggle'), null, status + ' shows Where to buy');

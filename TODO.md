@@ -54,5 +54,5 @@
 
 ## 8. Test and release
 
-- [ ] Cover migration, old exports, acquisition-date transitions, rereading, Up next, sync between versions, offline behaviour and phone layouts.
-- [ ] Leave live prices and stock integrations for a later, separate phase.
+- [x] Cover migration, old exports, acquisition-date transitions, rereading, Up next, sync between versions, offline behaviour and phone layouts.
+- [x] Leave live prices and stock integrations for a later, separate phase.

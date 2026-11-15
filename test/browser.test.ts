@@ -303,6 +303,9 @@ describe('history and Up next', () => {
     ]);
     assert.equal(await sessions('Dune').nth(0).locator('input').nth(1).inputValue(), '2019-05-01');
     assert.ok(await fits()); // the open book fits a phone
+    await p.setViewportSize({ width: 320, height: 640 });
+    assert.ok(await fits(), 'the open book scrolls sideways at 320px');
+    await p.setViewportSize({ width: 390, height: 844 });
     await p.locator('.years .chip', { hasText: '2019' }).click();
     await p.waitForFunction(() => document.querySelectorAll('.book').length === 1);
     assert.match(await p.locator('.year-card .what').innerText(), /^1 book/);

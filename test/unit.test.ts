@@ -2,6 +2,7 @@
  * and its offline case, the dates a status brings, imports, and Your
  * library's search and orders. */
 import { test } from 'node:test';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { toIsbn13, show } from '../src/isbn.ts';
 import { bookCode } from '../src/scan.ts';
@@ -26,6 +27,9 @@ import {
 } from '../src/shelf.ts';
 import type { Book } from '../src/shelf.ts';
 import { library, matches, sorted, shownDate } from '../src/library.ts';
+
+const SW = new URL('../build/site/app/sw.js', import.meta.url).pathname;
+const SRC = new URL('../src/', import.meta.url).pathname;
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
   assert.equal(toIsbn13('0-306-40615-2'), '9780306406157');
@@ -442,3 +446,18 @@ test('library dates read as dates, unknown ones as a dash', () => {
   assert.equal(shownDate(''), '—');
   assert.equal(shownDate('2026-03-03', 'en-GB'), '3 Mar 2026');
 });
+
+test(
+  'offline: the built service worker keeps every module the app loads',
+  { skip: !existsSync(SW) },
+  () => {
+    const files: string[] = JSON.parse(
+      /^const BUILD = (.*);$/m.exec(readFileSync(SW, 'utf8'))![1]!,
+    ).files;
+    for (const f of readdirSync(SRC))
+      if (f.endsWith('.ts'))
+        assert.ok(files.includes(f.replace(/\.ts$/, '.js')), f + ' is not kept offline');
+    for (const f of ['spark/index.js', 'style.css', 'index.html', 'version.json'])
+      assert.ok(files.includes(f), f + ' is not kept offline');
+  },
+);

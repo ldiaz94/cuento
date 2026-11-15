@@ -1036,6 +1036,12 @@ h1 {
   font-size: 14px;
   transition: color 0.25s ease;
 }
+@media (max-width: 360px) {
+  .seg button {
+    padding: 0 3px; /* four still fit beside a cover on a 320px phone */
+    font-size: 13px;
+  }
+}
 .seg button[aria-checked='true'] {
   color: var(--ink);
 }
