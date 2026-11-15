@@ -31,12 +31,12 @@
 
 ## 5. Build Your library
 
-- [ ] Show Owned, Reading and Read books.
-- [ ] Search by title, author or ISBN.
-- [ ] Sort by title, acquisition date or last-read date.
-- [ ] Show acquisition date, last read and times read, using “—” for unknown dates.
-- [ ] Open the full ownership and reading-history editor from each book.
-- [ ] Optionally filter Library to Up next.
+- [x] Show Owned, Reading and Read books.
+- [x] Search by title, author or ISBN.
+- [x] Sort by title, acquisition date or last-read date.
+- [x] Show acquisition date, last read and times read, using “—” for unknown dates.
+- [x] Open the full ownership and reading-history editor from each book.
+- [x] Optionally filter Library to Up next.
 
 ## 6. Add shopping preferences
 

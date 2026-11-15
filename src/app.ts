@@ -1,13 +1,15 @@
 /* cuento's page: add a book by its ISBN, and the shelf, filtered and
  * searched (Up next among the filters), each book's status, Up next or
- * Read again, rating, notes and history (historyView.ts). Built on spark
- * (spark/: signals, html`` templates, keyed each()).
+ * Read again, rating, notes and history (historyView.ts); or, switched
+ * to, Your library (libraryView.ts). Built on spark (spark/: signals,
+ * html`` templates, keyed each()).
  *
  *   books (signal) ──► shown (computed: filter + search) ──► each(row)
  *      │                                                      │
  *      └──► effect: save to localStorage   ◄── update(isbn) ──┘
  *
- * Depends on spark, isbn.ts, lookup.ts, scan.ts, shelf.ts and historyView.ts. Working
+ * Depends on spark, isbn.ts, lookup.ts, scan.ts, shelf.ts, historyView.ts and
+ * libraryView.ts. Working
  * offline is the service worker's (public/sw.js), not the page's. */
 import {
   signal,
@@ -35,6 +37,7 @@ import { remindersSection } from './remindersView.ts';
 import { shoppingSection, whereToBuySection } from './shoppingView.ts';
 import { review } from './review.ts';
 import { historyEditor } from './historyView.ts';
+import { libraryTools, libraryList } from './libraryView.ts';
 import { tilde, cloth } from './tilde.ts';
 import type { Found, Version } from './updates.ts';
 import {
@@ -100,6 +103,8 @@ effect(() => {
 // What the shelf shows: a status (or all) and the words searched for.
 const [filter, setFilter] = signal<Filter>('all');
 const [query, setQuery] = signal('');
+// Which the page shows: the shelf, or Your library.
+const [view, setView] = signal<'shelf' | 'library'>('shelf');
 // The book whose details are open, by ISBN ('' for none).
 const [open, setOpen] = signal('');
 // Adding a book: the ISBN typed, and where its lookup is: null (idle), or
@@ -410,6 +415,17 @@ function toolbar() {
       @input=${(e: Event) => setQuery(valueOf(e))}
     />
   </nav>`;
+}
+
+/** The switch between the shelf and Your library. */
+function viewSwitch() {
+  const pick = (v: 'shelf' | 'library', label: string) =>
+    html`<button aria-pressed=${() => String(view() === v)} @click=${() => glide(() => setView(v))}>
+      ${label}
+    </button>`;
+  return html`<div class="views" role="group" aria-label="View" data-at=${view}>
+    ${pick('shelf', 'Shelf')} ${pick('library', 'Library')}
+  </div>`;
 }
 
 /** A book's cover, or a coloured spine with its title when it has none. */
@@ -857,7 +873,10 @@ function scanner() {
 mount(
   document.getElementById('app') as HTMLElement,
   html`<div class="layout">
-    <aside class="side">${hero()} ${addBar()} ${toolbar()} ${saveWarning}</aside>
+    <aside class="side">
+      ${hero()} ${addBar()} ${viewSwitch()}
+      ${() => (view() === 'library' ? libraryTools(books) : toolbar())} ${saveWarning}
+    </aside>
     ${scanner} ${settings} ${updateBar} ${movedBar()}
     ${
       () =>
@@ -865,12 +884,17 @@ mount(
           ? untrack(() => review(reviewing(), books(), () => setReviewing(0)))
           : null /* untracked: a change to the shelf doesn't restart the story */
     }
-    <section class="main" aria-label="Your shelf">
-      ${yearCard} ${empty}
-      <ul class="shelf">
-        ${each(shown, b => b.isbn, row)}
-      </ul>
-    </section>
+    ${() =>
+      view() === 'library'
+        ? html`<section class="main" aria-label="Your library">
+            ${libraryList(books, update)}
+          </section>`
+        : html`<section class="main" aria-label="Your shelf">
+            ${yearCard} ${empty}
+            <ul class="shelf">
+              ${each(shown, b => b.isbn, row)}
+            </ul>
+          </section>`}
   </div>`,
 );
 // Books rise in one after another as the page opens; after that, books

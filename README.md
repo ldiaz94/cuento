@@ -62,6 +62,13 @@ for another.
 | Rate a read book         | Tap a star; tap the same star again to clear it                                                              |
 | See its dates and notes  | Tap its title                                                                                                |
 | Find a book              | Pick a status or a year (History), or search titles and authors                                              |
+| Own a book               | Tap **Owned**; it is dated the day you got it                                                                |
+| Read it again            | On a Read book, tap **Read again**                                                                           |
+| Edit reading history     | Tap its title: change the dates, remove a read, or **+ Add a past read**                                     |
+| Up next                  | Tap **Up next** on a Want or Owned book; the **Up next** chip lists them                                     |
+| Your library             | Tap **Library**: the books you own, to search (ISBN too) and sort; tap one for its history                   |
+| Where to buy             | Tap a Want book's title, then **Where to buy**: searches at the stores, not prices                           |
+| Shopping preferences     | **Settings → Shopping**: format, favourite stores first, and a city or postcode for nearby shops             |
 | Set a goal               | In **Settings**: books to read this year; the count shows the way                                            |
 | Keep a copy              | In **Settings** (the gear): **Export** saves the shelf as JSON; **Import** brings one back                   |
 | See past years           | **History** under the shelves: a year's books, and **Your year in books**                                    |
