@@ -240,7 +240,10 @@ async function ask(
   try {
     const offer = source.read(await get(source.url(isbn, region)), isbn, region);
     return offer ? { status: 'found', offer, checked: now } : { status: 'none', checked: now };
-  } catch {
+  } catch (e) {
+    // Logged for wrangler tail: which store failed, and why.
+    const host = new URL(source.url(isbn, region)).hostname;
+    console.warn(`prices: ${host} failed for ${isbn} (${region}): ${String(e)}`);
     return { status: 'error' };
   }
 }
@@ -276,7 +279,11 @@ export function fetchJson(fetcher: typeof fetch): GetJson {
       signal: AbortSignal.timeout(TIMEOUT),
       redirect: 'manual', // a redirect is not ok: refused below
     });
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+    if (!response.ok) {
+      const type = response.headers.get('Content-Type') || '-';
+      const to = response.headers.get('Location') || '-';
+      throw new Error(`HTTP ${response.status} (type ${type}, location ${to})`);
+    }
     if (Number(response.headers.get('Content-Length')) > MAX_BYTES) throw new Error('Too big.');
     const text = await response.text();
     if (text.length > MAX_BYTES) throw new Error('Too big.');
