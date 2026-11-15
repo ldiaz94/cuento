@@ -455,7 +455,8 @@ function stars(book: BookGetter) {
   </span>`;
 }
 
-/** A book's dates, history, notes and removal, shown when it is open. */
+/** A book's dates, history, notes and removal, shown when it is open: below
+ * the cover and title, the card's whole width. */
 function details(book: BookGetter) {
   const remove = () => {
     if (confirm('Take “' + book().title + '” off your shelf?'))
@@ -560,8 +561,8 @@ function row(book: BookGetter) {
               ? upNextToggle(book)
               : null}
       </div>
-      ${() => (isOpen() ? details(book) : null)}
     </div>
+    ${() => (isOpen() ? details(book) : null)}
   </li>`;
 }
 

@@ -430,6 +430,7 @@
 }
 .review .picks {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   width: 100%;
   padding: 0;
@@ -444,8 +445,9 @@
 }
 .review .picks li > span:last-child {
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 .review .glint {
   flex: none;
@@ -466,6 +468,7 @@
 }
 .review .slips {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   width: 100%;
   padding: 0;

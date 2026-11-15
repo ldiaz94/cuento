@@ -180,12 +180,17 @@
   gap: 10px;
 }
 .reminder-days {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
+@media (max-width: 420px) {
+  .reminder-days {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* four and three: each a finger wide */
+  }
+}
 .reminder-days .chip {
-  flex: 1;
   min-width: 0;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0;
 }
