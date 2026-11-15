@@ -121,6 +121,11 @@ export function withStatus(book: Book, status: Status, day = today()): Book {
   return mirrored(b);
 }
 
+/** Whether the reader has the book: Owned, and Reading and Read books too. */
+export function owns(book: Book): boolean {
+  return book.status !== 'want';
+}
+
 /** Change one date on the latest session, creating it when necessary. */
 export function withReadingDate(book: Book, key: keyof Reading, value: string): Book {
   const readings = book.readings.map(r => ({ ...r }));

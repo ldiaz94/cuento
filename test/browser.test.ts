@@ -114,20 +114,29 @@ test('a book no service knows is added by hand, and its text stays text', async 
   assert.equal(await page.evaluate(() => (window as { hacked?: number }).hacked), undefined);
 });
 
-test('reading a book dates it, and a read book can be rated', async () => {
+test('owning and reading a book date it, and a read book can be rated', async () => {
   const row = page.locator('.book', { hasText: 'Typesetting' });
+  await row.locator('[data-status=owned]').click();
+  assert.equal(await row.locator('.seg').getAttribute('data-at'), 'owned');
+  // The switch's four segments fit on one row of a phone.
+  const tops = await row
+    .locator('.seg button')
+    .evaluateAll(els => els.map(e => e.getBoundingClientRect().top));
+  assert.equal(new Set(tops).size, 1);
   await row.locator('[data-status=read]').click();
   await row.locator('.star').nth(3).click();
   assert.equal(await row.locator('.star.on').count(), 4);
   assert.equal(await row.locator('[data-status=read]').getAttribute('aria-checked'), 'true');
   assert.match((await text('.count')).replace(/\s+/g, ' ').trim(), /^1 book read in \d{4}$/);
   await row.locator('.title').click();
-  assert.match(await row.locator('input[type=date]').nth(2).inputValue(), /^\d{4}-\d\d-\d\d$/);
+  const dates = row.locator('input[type=date]'); // Added, Acquired, Started, Finished
+  assert.match(await dates.nth(1).inputValue(), /^\d{4}-\d\d-\d\d$/); // kept on reading
+  assert.match(await dates.nth(2).inputValue(), /^\d{4}-\d\d-\d\d$/);
 });
 
 test('filters and search narrow the shelf, and the counts follow', async () => {
   // A filter's books glide in a frame later (a view transition): wait for them.
-  await page.locator('.chip').nth(3).click(); // All, Want to read, Reading, Read
+  await page.locator('.chip').nth(4).click(); // All, Want to read, Owned, Reading, Read
   await page.waitForFunction(() => document.querySelectorAll('.book').length === 1);
   assert.deepEqual(await titles(), ['Typesetting Mathematics']);
   await page.locator('.chip').nth(0).click();

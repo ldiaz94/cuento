@@ -17,6 +17,7 @@ import {
   isBook,
   lastRead,
   readCount,
+  owns,
 } from '../src/shelf.ts';
 
 test('ISBNs: both lengths, an X check digit, and wrong digits refused', () => {
@@ -89,6 +90,25 @@ test('statuses date a book: acquisition, reading sessions and rereads', () => {
   const finished = withStatus(again, 'read', '2026-03-10');
   assert.deepEqual(finished.readings[1], { started: '2026-03-03', finished: '2026-03-10' });
   assert.equal(withStatus(again, 'want').started, '2026-03-03'); // a slip keeps its dates
+});
+
+test('Owned: acquisition dates it once, may be edited or blank, and survives later moves', () => {
+  const b = newBook('9780306406157', { title: 'T' }, 'want', '2026-01-01');
+  assert.equal(newBook(b.isbn, { title: 'T' }, 'owned', '2026-01-01').acquired, '2026-01-01');
+  const owned = withStatus(b, 'owned', '2026-01-15');
+  const edited = { ...owned, acquired: '2025-12-24' };
+  assert.equal(
+    withStatus(withStatus(edited, 'want', '2026-02-01'), 'owned', '2026-03-01').acquired,
+    '2025-12-24',
+  );
+  const blank = { ...owned, acquired: '' };
+  assert.equal(withStatus(blank, 'reading', '2026-02-01').acquired, ''); // only Want to Owned dates it
+  assert.equal(withStatus(b, 'reading', '2026-02-01').acquired, '');
+  assert.equal(isBook(blank), true);
+  assert.deepEqual(
+    (['want', 'owned', 'reading', 'read'] as const).map(s => owns(withStatus(b, s, '2026-02-01'))),
+    [false, true, true, true],
+  );
 });
 
 test('Up next survives shelving and clears when reading starts', () => {

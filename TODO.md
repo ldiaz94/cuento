@@ -8,11 +8,11 @@
 
 ## 2. Add the Owned status
 
-- [ ] Use the progression **Want → Owned → Reading → Read**.
-- [ ] Set `acquired` to the current date when moving a book from Want to Owned.
-- [ ] Make the acquisition date editable and allow it to be blank.
-- [ ] Preserve an existing acquisition date during later status changes.
-- [ ] Treat Reading and Read books as owned for Library purposes.
+- [x] Use the progression **Want → Owned → Reading → Read**.
+- [x] Set `acquired` to the current date when moving a book from Want to Owned.
+- [x] Make the acquisition date editable and allow it to be blank.
+- [x] Preserve an existing acquisition date during later status changes.
+- [x] Treat Reading and Read books as owned for Library purposes.
 
 ## 3. Add reading history
 
